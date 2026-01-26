@@ -1,7 +1,7 @@
-package com.buenws.buenws_backend.api.user.controller;
+package com.buenws.buenws_backend.api.controller;
 
-import com.buenws.buenws_backend.api.user.records.UserRecords;
-import com.buenws.buenws_backend.api.user.service.UserService;
+import com.buenws.buenws_backend.api.records.UserRecords;
+import com.buenws.buenws_backend.api.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

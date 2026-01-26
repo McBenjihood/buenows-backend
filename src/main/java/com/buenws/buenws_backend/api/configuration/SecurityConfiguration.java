@@ -1,4 +1,4 @@
-package com.buenws.buenws_backend.api.user.configuration;
+package com.buenws.buenws_backend.api.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

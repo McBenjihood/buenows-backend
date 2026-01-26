@@ -1,6 +1,6 @@
 package com.buenws.buenws_backend;
 
-import com.buenws.buenws_backend.api.user.service.CustomUserDetailsService;
+import com.buenws.buenws_backend.api.service.CustomUserDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

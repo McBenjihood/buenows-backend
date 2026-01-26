@@ -1,4 +1,4 @@
-package com.buenws.buenws_backend.api.user.entities;
+package com.buenws.buenws_backend.api.entities;
 
 import jakarta.persistence.*;
 
@@ -23,7 +23,6 @@ public class UserEntity {
     public Long getId() {
         return id;
     }
-
     public void setId(Long id) {
         this.id = id;
     }
@@ -31,7 +30,6 @@ public class UserEntity {
     public List<String> getAuthorities() {
         return authorities;
     }
-
     public void setAuthorities(List<String> authorities) {
         this.authorities = authorities;
     }
@@ -39,7 +37,6 @@ public class UserEntity {
     public String getUsername() {
         return username;
     }
-
     public void setUsername(String username) {
         this.username = username;
     }
@@ -47,7 +44,6 @@ public class UserEntity {
     public String getPassword() {
         return password;
     }
-
     public void setPassword(String password) {
         this.password = password;
     }

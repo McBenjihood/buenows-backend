@@ -1,4 +1,4 @@
-package com.buenws.buenws_backend.api.user.records;
+package com.buenws.buenws_backend.api.records;
 
 public class UserRecords
 {
