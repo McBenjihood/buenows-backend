@@ -1,6 +1,7 @@
 package com.buenws.buenws_backend.api.controller;
 
 import com.buenws.buenws_backend.api.records.UserRecords;
+import com.buenws.buenws_backend.api.service.InquiryService;
 import com.buenws.buenws_backend.api.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,14 +13,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/user")
 public class UserController {
 
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
     private UserService userService;
+    private InquiryService inquiryService;
+
+    public UserController(UserService userService, InquiryService inquiryService) {
+        this.userService = userService;
+        this.inquiryService = inquiryService;
+    }
 
     @PostMapping("/contact-submissions")
     public ResponseEntity<UserRecords.FormSubmissionResponseRecord> submitContactForm(@RequestBody UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
-        return ResponseEntity.ok(new UserRecords.FormSubmissionResponseRecord(true, "Message sent successfully"));
+        return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequestRecord));
     }
 
     @PostMapping("/register")

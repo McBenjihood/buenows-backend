@@ -5,11 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface InquiryRepository extends JpaRepository<InquiryEntity, Long> {
-
-    @Query("SELECT i FROM InquiryEntity i WHERE i.email = :email")
-    Optional<InquiryEntity> findByEmail(String email);
+    //Optional<List<InquiryEntity>> findByEmail(String email);
 }

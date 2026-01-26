@@ -15,17 +15,4 @@ public class UserService {
         this.inquiryRepository = inquiryRepository;
         this.passwordEncoder = passwordEncoder;
     }
-
-    public UserRecords.FormSubmissionResponseRecord submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
-
-        InquiryEntity inquiry = new InquiryEntity();
-
-        inquiry.setEmail(formSubmissionRequestRecord.email());
-        inquiry.setTitle(formSubmissionRequestRecord.title());
-        inquiry.setMessage(formSubmissionRequestRecord.message());
-
-        //inquiryRepository
-
-        return new UserRecords.FormSubmissionResponseRecord(true, "Message sent successfully");
-    }
 }
