@@ -13,10 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/user")
 public class UserController {
 
-    private InquiryService inquiryService;
+    private final InquiryService inquiryService;
+    private final UserService userService;
 
-    public UserController(InquiryService inquiryService) {
+    public UserController(InquiryService inquiryService, UserService userService) {
         this.inquiryService = inquiryService;
+        this.userService = userService;
     }
 
     @PostMapping("/contact-submissions")
@@ -26,6 +28,6 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<UserRecords.RegisterResponseRecord> registerUser(@RequestBody UserRecords.RegisterRequestRecord registerRequestRecord){
-        return ResponseEntity.ok(new UserRecords.RegisterResponseRecord(true, "User registered successfully"));
+        return ResponseEntity.ok(userService.registerUser(registerRequestRecord));
     }
 }

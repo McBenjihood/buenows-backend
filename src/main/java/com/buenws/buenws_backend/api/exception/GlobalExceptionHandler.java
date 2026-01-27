@@ -1,6 +1,7 @@
 package com.buenws.buenws_backend.api.exception;
 
 
+import com.buenws.buenws_backend.api.exception.customExceptions.CouldNotCreateResourceException;
 import com.buenws.buenws_backend.api.exception.customExceptions.InvalidInquiryException;
 import com.buenws.buenws_backend.api.records.UserRecords;
 import org.springframework.http.ResponseEntity;
@@ -19,4 +20,13 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(CouldNotCreateResourceException.class)
+    public ResponseEntity<UserRecords.FormSubmissionResponseRecord> handleCouldNotCreateResourceException(Exception ex) {
+        return ResponseEntity
+                .badRequest()
+                .body(
+                        new UserRecords.FormSubmissionResponseRecord(false, ex.getMessage())
+                );
+    }
 }
+
