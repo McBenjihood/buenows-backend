@@ -13,11 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/user")
 public class UserController {
 
-    private UserService userService;
     private InquiryService inquiryService;
 
-    public UserController(UserService userService, InquiryService inquiryService) {
-        this.userService = userService;
+    public UserController(InquiryService inquiryService) {
         this.inquiryService = inquiryService;
     }
 

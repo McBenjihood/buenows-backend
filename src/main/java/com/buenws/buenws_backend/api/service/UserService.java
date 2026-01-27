@@ -15,4 +15,6 @@ public class UserService {
         this.inquiryRepository = inquiryRepository;
         this.passwordEncoder = passwordEncoder;
     }
+
+
 }
