@@ -1,5 +1,6 @@
 package com.buenws.buenws_backend.api.service.tokens;
 
+import com.buenws.buenws_backend.api.entity.UserEntity;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
@@ -11,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TokenService {
@@ -18,17 +20,17 @@ public class TokenService {
     @Value("${jwt.secret}")
     private String secretKeyString;
 
-    public String generateToken(String Username) throws JOSEException {
+    public String generateToken(UserEntity userEntity) throws JOSEException {
 
         Date now = getCurrentDate();
         Date exp = getHourFromNow();
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(Username)
+                .subject(userEntity.getEmail())
                 .issuer("https://buenows.org")
                 .issueTime(now)
                 .expirationTime(exp)
-                .claim("roles", List.of("ROLE_USER"))
+                .claim("roles", userEntity.getAuthorities())
                 .build();
 
         byte[] sharedSecret = secretKeyString.getBytes(StandardCharsets.UTF_8);
@@ -40,10 +42,19 @@ public class TokenService {
         return jwsObject.serialize();
     }
 
-    public boolean validateToken(String token) throws ParseException, JOSEException{
+    public Optional<UserEntity> validateToken(String token) throws ParseException, JOSEException{
         JWSObject jwsObject = JWSObject.parse(token);
         JWSVerifier verifier = new MACVerifier(secretKeyString);
-        return jwsObject.verify(verifier);
+        if(!jwsObject.verify(verifier)){
+            return Optional.empty();
+        }
+
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
+
+        return Optional.of(new UserEntity(
+                claimsSet.getSubject(),
+                List.of(jwsObject.getPayload().toJSONObject().get("roles").toString())
+        ));
     }
 
     public String getUsernameFromToken(String token) throws ParseException {

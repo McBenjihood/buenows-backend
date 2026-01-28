@@ -4,10 +4,7 @@ import com.buenws.buenws_backend.api.records.UserRecords;
 import com.buenws.buenws_backend.api.service.InquiryService;
 import com.buenws.buenws_backend.api.service.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/user")
@@ -27,12 +24,17 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserRecords.CredentialsResponseRecord> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
+    public ResponseEntity<UserRecords.RegisterResponseRecord> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return ResponseEntity.ok(userService.registerUser(credentialsSubmitRequestRecord));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserRecords.CredentialsResponseRecord> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
-        return ResponseEntity.ok(userService.loginUser(credentialsSubmitRequestRecord));
+    public ResponseEntity<UserRecords.LoginResponseRecord> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
+        return userService.loginUser(credentialsSubmitRequestRecord);
+    }
+
+    @GetMapping("/blockedEndpoint")
+    public ResponseEntity<UserRecords.blockedEndpointResponse> checkBlockedEndpoint(){
+        return ResponseEntity.ok(new UserRecords.blockedEndpointResponse(true));
     }
 }

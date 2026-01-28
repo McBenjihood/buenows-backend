@@ -7,6 +7,14 @@ import java.util.List;
 @Entity
 @Table(name = "users")
 public class UserEntity {
+
+    public UserEntity(){}
+
+    public UserEntity(String email, List<String> authorities) {
+        this.authorities = authorities;
+        this.email = email;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")

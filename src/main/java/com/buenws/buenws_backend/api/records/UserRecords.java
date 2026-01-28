@@ -18,8 +18,21 @@ public class UserRecords
             String password
     ){}
 
-    public record CredentialsResponseRecord(
+    public record RegisterResponseRecord(
             boolean successful,
             String message
+    ){}
+
+    public record LoginResponseRecord(
+            boolean successful,
+            String message,
+            String tokenType,
+            String token,
+            Long expirationDate,
+            String email
+    ){}
+
+    public record blockedEndpointResponse(
+            boolean bool
     ){}
 }
