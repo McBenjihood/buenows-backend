@@ -27,7 +27,12 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserRecords.RegisterResponseRecord> registerUser(@RequestBody UserRecords.RegisterRequestRecord registerRequestRecord){
-        return ResponseEntity.ok(userService.registerUser(registerRequestRecord));
+    public ResponseEntity<UserRecords.CredentialsResponseRecord> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
+        return ResponseEntity.ok(userService.registerUser(credentialsSubmitRequestRecord));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<UserRecords.CredentialsResponseRecord> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
+        return ResponseEntity.ok(userService.loginUser(credentialsSubmitRequestRecord));
     }
 }

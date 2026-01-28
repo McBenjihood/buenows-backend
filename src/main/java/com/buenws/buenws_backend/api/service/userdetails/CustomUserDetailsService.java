@@ -1,6 +1,6 @@
-package com.buenws.buenws_backend.api.service;
+package com.buenws.buenws_backend.api.service.userdetails;
 
-import com.buenws.buenws_backend.api.entities.UserEntity;
+import com.buenws.buenws_backend.api.entity.UserEntity;
 import com.buenws.buenws_backend.api.repository.UserRepository;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.User;

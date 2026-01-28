@@ -23,6 +23,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests((authorize) ->  authorize
                         .requestMatchers("/api/user/contact-submissions").permitAll()
                         .requestMatchers("/api/user/register").permitAll()
+                        .requestMatchers("/api/user/login").permitAll()
                         .anyRequest().authenticated()
                 );
 

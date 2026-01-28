@@ -1,4 +1,4 @@
-package com.buenws.buenws_backend.api.tokens;
+package com.buenws.buenws_backend.api.service.tokens;
 
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;

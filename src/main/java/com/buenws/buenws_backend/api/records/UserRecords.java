@@ -13,12 +13,12 @@ public class UserRecords
             String message
     ){}
 
-    public record RegisterRequestRecord(
+    public record CredentialsSubmitRequestRecord(
             String email,
             String password
     ){}
 
-    public record RegisterResponseRecord(
+    public record CredentialsResponseRecord(
             boolean successful,
             String message
     ){}

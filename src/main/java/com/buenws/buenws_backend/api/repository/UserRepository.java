@@ -1,5 +1,5 @@
 package com.buenws.buenws_backend.api.repository;
-import com.buenws.buenws_backend.api.entities.UserEntity;
+import com.buenws.buenws_backend.api.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

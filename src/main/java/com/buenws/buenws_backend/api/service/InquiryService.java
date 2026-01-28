@@ -1,6 +1,6 @@
 package com.buenws.buenws_backend.api.service;
 
-import com.buenws.buenws_backend.api.entities.InquiryEntity;
+import com.buenws.buenws_backend.api.entity.InquiryEntity;
 import com.buenws.buenws_backend.api.exception.customExceptions.InvalidInquiryException;
 import com.buenws.buenws_backend.api.records.UserRecords;
 import com.buenws.buenws_backend.api.repository.InquiryRepository;

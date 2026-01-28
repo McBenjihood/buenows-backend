@@ -1,4 +1,4 @@
-package com.buenws.buenws_backend.api.entities;
+package com.buenws.buenws_backend.api.entity;
 
 import jakarta.persistence.*;
 
