@@ -32,9 +32,4 @@ public class UserController {
     public ResponseEntity<UserRecords.LoginResponseRecord> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return userService.loginUser(credentialsSubmitRequestRecord);
     }
-
-    @GetMapping("/blockedEndpoint")
-    public ResponseEntity<UserRecords.blockedEndpointResponse> checkBlockedEndpoint(){
-        return ResponseEntity.ok(new UserRecords.blockedEndpointResponse(true));
-    }
 }

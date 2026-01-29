@@ -83,7 +83,7 @@ public class UserService {
                         "Login was succesfull",
                         "Bearer",
                         token,
-                        tokenService.getExpirationFromToken(token),
+                        tokenService.getExpirationFromToken(token).getTime(),
                         credentialsSubmitRequestRecord.email()
                 )
             );

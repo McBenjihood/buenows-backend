@@ -1,6 +1,7 @@
 package com.buenws.buenws_backend.api.service.tokens;
 
 import com.buenws.buenws_backend.api.entity.UserEntity;
+import com.buenws.buenws_backend.api.exception.customExceptions.ExpiredTokenException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
@@ -45,15 +46,22 @@ public class TokenService {
     public Optional<UserEntity> validateToken(String token) throws ParseException, JOSEException{
         JWSObject jwsObject = JWSObject.parse(token);
         JWSVerifier verifier = new MACVerifier(secretKeyString);
+
+        Date currentDate = new Date(System.currentTimeMillis());
+
         if(!jwsObject.verify(verifier)){
             return Optional.empty();
         }
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
 
+        if (currentDate.after(claimsSet.getExpirationTime())){
+            throw new ExpiredTokenException("Token has expired");
+        }
+
         return Optional.of(new UserEntity(
                 claimsSet.getSubject(),
-                List.of(jwsObject.getPayload().toJSONObject().get("roles").toString())
+                claimsSet.getStringListClaim("roles")
         ));
     }
 
@@ -62,10 +70,10 @@ public class TokenService {
         return jwsObject.getPayload().toJSONObject().get("sub").toString();
     }
 
-    public long getExpirationFromToken(String token) throws ParseException {
+    public Date getExpirationFromToken(String token) throws ParseException {
         JWSObject jwsObject = JWSObject.parse(token);
-        String expString = jwsObject.getPayload().toJSONObject().get("exp").toString();
-        return Long.parseLong(expString);
+        JWTClaimsSet claimSet = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
+        return claimSet.getExpirationTime();
     }
 
     public String parseTokenFromHeader(String header){
@@ -82,5 +90,6 @@ public class TokenService {
     private Date getHourFromNow(){
         return new Date(System.currentTimeMillis() +(3600 * 1000));
     }
+
 
 }

@@ -35,4 +35,9 @@ public class UserRecords
     public record blockedEndpointResponse(
             boolean bool
     ){}
+
+    public record ExpiredTokenResponseRecord(
+            String errorCode,
+            String message
+    ){}
 }
