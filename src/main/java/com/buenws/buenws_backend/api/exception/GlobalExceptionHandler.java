@@ -4,8 +4,8 @@ package com.buenws.buenws_backend.api.exception;
 import com.buenws.buenws_backend.api.exception.customExceptions.CouldNotCreateResourceException;
 import com.buenws.buenws_backend.api.exception.customExceptions.InvalidInquiryException;
 import com.buenws.buenws_backend.api.exception.customExceptions.ParseTokenException;
+import com.buenws.buenws_backend.api.exception.customExceptions.UserNotFoundException;
 import com.buenws.buenws_backend.api.records.UserRecords;
-import org.apache.catalina.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -15,20 +15,20 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidInquiryException.class)
-    public ResponseEntity<UserRecords.FormSubmissionResponseRecord> handleException(Exception ex) {
+    public ResponseEntity<UserRecords.DefaultResponseRecord> handleException(Exception ex) {
         return ResponseEntity
                 .badRequest()
                 .body(
-                        new UserRecords.FormSubmissionResponseRecord(false, ex.getMessage())
+                        new UserRecords.DefaultResponseRecord(false, ex.getMessage())
                 );
     }
 
     @ExceptionHandler(CouldNotCreateResourceException.class)
-    public ResponseEntity<UserRecords.FormSubmissionResponseRecord> handleCouldNotCreateResourceException(Exception ex) {
+    public ResponseEntity<UserRecords.DefaultResponseRecord> handleCouldNotCreateResourceException(Exception ex) {
         return ResponseEntity
                 .badRequest()
                 .body(
-                        new UserRecords.FormSubmissionResponseRecord(false, ex.getMessage())
+                        new UserRecords.DefaultResponseRecord(false, ex.getMessage())
                 );
     }
 
@@ -40,6 +40,7 @@ public class GlobalExceptionHandler {
                         new UserRecords.LoginResponseRecord(
                                 false,
                                 ex.getMessage(),
+                                "",
                                 "",
                                 "",
                                 0L,
@@ -58,10 +59,21 @@ public class GlobalExceptionHandler {
                                 "Invalid email or password",
                                 "",
                                 "",
+                                "",
                                 0L,
                                 ""
                         )
                 );
     }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<UserRecords.DefaultResponseRecord> handleUserNotFoundException(Exception ex) {
+        return ResponseEntity
+                .badRequest()
+                .body(
+                        new UserRecords.DefaultResponseRecord(false, ex.getMessage())
+                );
+    }
+
 }
 

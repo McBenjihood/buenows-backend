@@ -8,6 +8,7 @@ import com.buenws.buenws_backend.api.records.UserRecords;
 import com.buenws.buenws_backend.api.repository.UserRepository;
 import com.buenws.buenws_backend.api.service.tokens.TokenService;
 import com.nimbusds.jose.JOSEException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -64,6 +65,7 @@ public class UserService {
     //Login Logic
     public ResponseEntity<UserRecords.LoginResponseRecord> loginUser(UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
         try{
+
             Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
                     credentialsSubmitRequestRecord.email(),
                     credentialsSubmitRequestRecord.password()
@@ -73,22 +75,58 @@ public class UserService {
 
             Optional<UserEntity> user = userRepository.findByEmail(credentialsSubmitRequestRecord.email());
 
-            String token = tokenService
-                .generateToken(
-                    user.get()
+            if (user.isPresent()){
+                UserEntity userEntity = user.get();
+
+                String token = tokenService
+                        .generateToken(
+                                userEntity
+                        );
+
+                String refresh_token = tokenService
+                        .generateRefreshToken(
+                                userEntity
+                        );
+
+                return ResponseEntity.ok(
+                        new UserRecords.LoginResponseRecord(
+                                true,
+                                "Login was successful",
+                                "Bearer",
+                                token,
+                                refresh_token,
+                                tokenService.getExpirationFromToken(token).getTime(),
+                                credentialsSubmitRequestRecord.email()
+                        )
                 );
-            return ResponseEntity.ok(
-                new UserRecords.LoginResponseRecord(
-                true,
-                        "Login was succesfull",
-                        "Bearer",
-                        token,
-                        tokenService.getExpirationFromToken(token).getTime(),
-                        credentialsSubmitRequestRecord.email()
-                )
-            );
+
+            }
+            else {
+                throw new UserNotFoundException("User not found");
+            }
 
         }catch (ParseException | JOSEException e){
+            throw new ParseTokenException("Error processing login token");
+        }
+    }
+
+    public UserRecords.RefreshTokenResponseRecord refreshToken (UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
+        try{
+            Optional<UserEntity> user = tokenService.validateRefreshToken(refreshTokenRequestRecord.refresh_token());
+
+            if (user.isPresent()){
+                UserEntity userEntity = user.get();
+                String token = tokenService.generateToken(userEntity);
+                String newRefreshToken = tokenService.generateRefreshToken(userEntity);
+
+                return new UserRecords.RefreshTokenResponseRecord(
+                        true,
+                        token,
+                        newRefreshToken);
+            }else {
+                throw new UserNotFoundException("Token does not belong to a valid User");
+            }
+        } catch (ParseException | JOSEException e) {
             throw new ParseTokenException("Error processing login token");
         }
     }

@@ -17,7 +17,7 @@ public class InquiryService {
     }
 
     @Transactional
-    public UserRecords.FormSubmissionResponseRecord submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
+    public UserRecords.DefaultResponseRecord submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
         try {
             InquiryEntity inquiry = new InquiryEntity();
 
@@ -31,7 +31,7 @@ public class InquiryService {
             throw new InvalidInquiryException("Could not submit inquiry to Database");
         }
 
-        return new UserRecords.FormSubmissionResponseRecord(true, "Inquiry submitted successfully");
+        return new UserRecords.DefaultResponseRecord(true, "Inquiry submitted successfully");
     }
 
 }

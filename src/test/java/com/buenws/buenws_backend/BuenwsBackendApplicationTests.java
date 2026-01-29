@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -76,6 +77,7 @@ class BuenwsBackendApplicationTests {
 		when(tokenService.parseTokenFromHeader(anyString())).thenReturn(mockToken);
 		when(tokenService.getExpirationFromToken(mockToken)).thenReturn(expDate);
 		when(tokenService.validateToken(mockToken)).thenReturn(Optional.of(new UserEntity()));
+
 		//Act
 		filter.doFilter(request, response, filterChain);
 

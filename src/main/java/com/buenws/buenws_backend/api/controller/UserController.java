@@ -19,7 +19,7 @@ public class UserController {
     }
 
     @PostMapping("/contact-submissions")
-    public ResponseEntity<UserRecords.FormSubmissionResponseRecord> submitContactForm(@RequestBody UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
+    public ResponseEntity<UserRecords.DefaultResponseRecord> submitContactForm(@RequestBody UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
         return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequestRecord));
     }
 
@@ -31,5 +31,10 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<UserRecords.LoginResponseRecord> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return userService.loginUser(credentialsSubmitRequestRecord);
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<UserRecords.RefreshTokenResponseRecord> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
+        return ResponseEntity.ok(userService.refreshToken(refreshTokenRequestRecord));
     }
 }
