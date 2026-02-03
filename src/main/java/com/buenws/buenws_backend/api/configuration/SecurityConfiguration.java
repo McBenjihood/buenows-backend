@@ -33,9 +33,9 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests((authorize) ->  authorize
                         .requestMatchers("/api/user/contact-submissions").permitAll()
-                        .requestMatchers("/api/user/register").permitAll()
-                        .requestMatchers("/api/user/login").permitAll()
-                        .requestMatchers("/api/user/refresh-token").permitAll()
+                        .requestMatchers("/api/user/auth/register").permitAll()
+                        .requestMatchers("/api/user/auth/login").permitAll()
+                        .requestMatchers("/api/user/refresh").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterAfter(bearerTokenAuthFilter, BasicAuthenticationFilter.class);
@@ -46,7 +46,7 @@ public class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
+        config.setAllowedOrigins(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

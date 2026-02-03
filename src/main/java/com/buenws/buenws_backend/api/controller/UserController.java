@@ -23,17 +23,17 @@ public class UserController {
         return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequestRecord));
     }
 
-    @PostMapping("/register")
+    @PostMapping("/auth/register")
     public ResponseEntity<UserRecords.RegisterResponseRecord> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return ResponseEntity.ok(userService.registerUser(credentialsSubmitRequestRecord));
     }
 
-    @PostMapping("/login")
+    @PostMapping("/auth/login")
     public ResponseEntity<UserRecords.LoginResponseRecord> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return userService.loginUser(credentialsSubmitRequestRecord);
     }
 
-    @PostMapping("/refresh-token")
+    @PostMapping("/auth/refresh")
     public ResponseEntity<UserRecords.RefreshTokenResponseRecord> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
         return ResponseEntity.ok(userService.refreshToken(refreshTokenRequestRecord));
     }
