@@ -31,11 +31,6 @@ public class UserEntity {
     @Column(name = "authority")
     private List<String> authorities;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "refresh_tokens", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "refresh_token")
-    private List<String> refreshToken;
-
     private String email;
     private String password;
 
