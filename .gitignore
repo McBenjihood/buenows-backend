@@ -4,7 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 /sql/sampleData.sql
-src/main/resources/application-secrets.properties
+/src/main/resources/application-secrets.properties
 
 ### STS ###
 .apt_generated
