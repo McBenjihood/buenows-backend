@@ -28,11 +28,11 @@ import java.util.Optional;
 @Component
 public class BearerTokenAuthFilter extends OncePerRequestFilter {
 
+    TokenService tokenService;
+
     public BearerTokenAuthFilter(TokenService tokenService) {
         this.tokenService = tokenService;
     }
-
-    TokenService tokenService;
 
     @Override
     protected  void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {

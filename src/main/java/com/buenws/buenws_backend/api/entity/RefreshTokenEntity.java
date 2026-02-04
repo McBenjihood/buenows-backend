@@ -2,6 +2,7 @@ package com.buenws.buenws_backend.api.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "refresh_tokens")
@@ -9,7 +10,7 @@ public class RefreshTokenEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private String id;
+    private UUID id;
 
     @Column(name = "token")
     private String token;
@@ -17,13 +18,13 @@ public class RefreshTokenEntity {
     @Column(name = "created_at")
     private LocalDateTime created_at;
 
-    @Column(name = "created_at")
+    @Column(name = "expires_at")
     private LocalDateTime expires_at;
 
-    public void setId(String id) {
+    public void setId(UUID id) {
         this.id = id;
     }
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
