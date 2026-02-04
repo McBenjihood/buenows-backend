@@ -1,5 +1,6 @@
 package com.buenws.buenws_backend.api.service;
 
+import com.buenws.buenws_backend.api.entity.RefreshTokenEntity;
 import com.buenws.buenws_backend.api.entity.UserEntity;
 import com.buenws.buenws_backend.api.exception.customExceptions.CouldNotCreateResourceException;
 import com.buenws.buenws_backend.api.exception.customExceptions.ParseTokenException;
@@ -7,6 +8,7 @@ import com.buenws.buenws_backend.api.exception.customExceptions.UserNotFoundExce
 import com.buenws.buenws_backend.api.records.UserRecords;
 import com.buenws.buenws_backend.api.repository.UserRepository;
 import com.buenws.buenws_backend.api.service.tokens.TokenService;
+import com.buenws.buenws_backend.util.BuenowsUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -79,7 +85,7 @@ public class UserService {
                 UserEntity userEntity = user.get();
 
                 String token = tokenService
-                        .generateToken(
+                        .generateJWTToken(
                                 userEntity
                         );
 
@@ -110,24 +116,18 @@ public class UserService {
         }
     }
 
+    //RefreshToken Logic
     public UserRecords.RefreshTokenResponseRecord refreshToken (UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
         try{
-            Optional<UserEntity> user = tokenService.validateRefreshToken(refreshTokenRequestRecord.refresh_token());
+            Optional<RefreshTokenEntity> refreshTokenObject = tokenService.validateRefreshToken(refreshTokenRequestRecord.refresh_token());
 
-            if (user.isPresent()){
-                UserEntity userEntity = user.get();
-                String token = tokenService.generateToken(userEntity);
-                String newRefreshToken = tokenService.generateRefreshToken(userEntity);
-
-                return new UserRecords.RefreshTokenResponseRecord(
-                        true,
-                        token,
-                        newRefreshToken);
-            }else {
-                throw new UserNotFoundException("Token does not belong to a valid User");
+            if (refreshTokenObject.isPresent()){
+                RefreshTokenEntity refreshTokenEntity = refreshTokenObject.get();
             }
+
+            return new UserRecords.RefreshTokenResponseRecord(true, "","", "");
         } catch (ParseException | JOSEException e) {
-            throw new ParseTokenException("Error processing login token");
+            throw new ParseTokenException("Error processing refresh token");
         }
     }
 

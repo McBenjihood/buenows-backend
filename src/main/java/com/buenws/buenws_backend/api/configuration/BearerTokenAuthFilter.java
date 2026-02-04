@@ -39,7 +39,7 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
         String accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
         if (!accessToken.isEmpty()){
             try {
-                Optional<UserEntity> userEntity = tokenService.validateToken(accessToken);
+                Optional<UserEntity> userEntity = tokenService.validateJWTToken(accessToken);
 
                 if(userEntity.isEmpty()){
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

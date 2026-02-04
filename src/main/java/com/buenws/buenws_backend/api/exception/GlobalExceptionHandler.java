@@ -1,10 +1,7 @@
 package com.buenws.buenws_backend.api.exception;
 
 
-import com.buenws.buenws_backend.api.exception.customExceptions.CouldNotCreateResourceException;
-import com.buenws.buenws_backend.api.exception.customExceptions.InvalidInquiryException;
-import com.buenws.buenws_backend.api.exception.customExceptions.ParseTokenException;
-import com.buenws.buenws_backend.api.exception.customExceptions.UserNotFoundException;
+import com.buenws.buenws_backend.api.exception.customExceptions.*;
 import com.buenws.buenws_backend.api.records.UserRecords;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
@@ -72,6 +69,19 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(
                         new UserRecords.DefaultResponseRecord(false, ex.getMessage())
+                );
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<UserRecords.RefreshTokenResponseRecord> handleInvalidRefreshTokenException(Exception ex){
+        return ResponseEntity
+                .badRequest()
+                .body(
+                        new UserRecords.RefreshTokenResponseRecord(
+                                false,
+                                "",
+                                "",
+                                "")
                 );
     }
 

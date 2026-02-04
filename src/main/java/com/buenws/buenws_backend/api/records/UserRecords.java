@@ -2,6 +2,11 @@ package com.buenws.buenws_backend.api.records;
 
 public class UserRecords
 {
+    //
+    // IMPORTANT TODO: Implement Generic Wrappers so dry principle is still upheld.
+    //
+
+
     //Responses
     //Default Response
     public record DefaultResponseRecord(
@@ -28,6 +33,7 @@ public class UserRecords
     ){}
     public record RefreshTokenResponseRecord(
       boolean successful,
+      String message,
       String token,
       String refreshToken
     ){}

@@ -1,6 +1,8 @@
 package com.buenws.buenws_backend.api.entity;
 
 import jakarta.persistence.*;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -16,10 +18,10 @@ public class RefreshTokenEntity {
     private String token;
 
     @Column(name = "created_at")
-    private LocalDateTime created_at;
+    private Instant created_at;
 
     @Column(name = "expires_at")
-    private LocalDateTime expires_at;
+    private Instant expires_at;
 
     public void setId(UUID id) {
         this.id = id;
@@ -35,17 +37,17 @@ public class RefreshTokenEntity {
         this.token = token;
     }
 
-    public LocalDateTime getCreated_at() {
+    public Instant getCreated_at() {
         return created_at;
     }
-    public void setCreated_at(LocalDateTime created_at) {
+    public void setCreated_at(Instant created_at) {
         this.created_at = created_at;
     }
 
-    public LocalDateTime getExpires_at() {
+    public Instant getExpires_at() {
         return expires_at;
     }
-    public void setExpires_at(LocalDateTime expires_at) {
+    public void setExpires_at(Instant expires_at) {
         this.expires_at = expires_at;
     }
 }
