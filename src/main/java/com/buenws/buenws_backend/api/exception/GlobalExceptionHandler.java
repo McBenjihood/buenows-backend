@@ -40,7 +40,6 @@ public class GlobalExceptionHandler {
                                 "",
                                 "",
                                 "",
-                                0L,
                                 ""
                         )
                 );
@@ -57,7 +56,6 @@ public class GlobalExceptionHandler {
                                 "",
                                 "",
                                 "",
-                                0L,
                                 ""
                         )
                 );
@@ -79,7 +77,7 @@ public class GlobalExceptionHandler {
                 .body(
                         new UserRecords.RefreshTokenResponseRecord(
                                 false,
-                                "",
+                                ex.getMessage(),
                                 "",
                                 "")
                 );

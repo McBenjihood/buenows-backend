@@ -11,17 +11,18 @@ import java.util.UUID;
 @Table(name = "users")
 public class UserEntity {
 
+    //Constructors
     public UserEntity(){}
-
     public UserEntity(String email){
         this.email = email;
     }
-
     public UserEntity(String email, List<String> authorities) {
         this.authorities = authorities;
         this.email = email;
     }
 
+
+    //Columns
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
@@ -32,14 +33,19 @@ public class UserEntity {
     @Column(name = "authority")
     private List<String> authorities;
 
+    @Column(name = "email")
     private String email;
+
+    @Column(name = "password")
     private String password;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private RefreshTokenEntity refreshTokenEntity;
+
+
+    // Getters / Setters
     public UUID getId() {
         return id;
-    }
-    public void setId(UUID id) {
-        this.id = id;
     }
 
     public List<String> getAuthorities() {
@@ -56,10 +62,14 @@ public class UserEntity {
         this.email = email;
     }
 
-    public String getPassword() {
-        return password;
-    }
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public RefreshTokenEntity getRefreshTokenEntity() {
+        return refreshTokenEntity;
+    }
+    public void setRefreshTokenEntity(RefreshTokenEntity refreshTokenEntity) {
+        this.refreshTokenEntity = refreshTokenEntity;
     }
 }

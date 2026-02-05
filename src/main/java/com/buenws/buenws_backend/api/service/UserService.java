@@ -3,9 +3,11 @@ package com.buenws.buenws_backend.api.service;
 import com.buenws.buenws_backend.api.entity.RefreshTokenEntity;
 import com.buenws.buenws_backend.api.entity.UserEntity;
 import com.buenws.buenws_backend.api.exception.customExceptions.CouldNotCreateResourceException;
+import com.buenws.buenws_backend.api.exception.customExceptions.InvalidRefreshTokenException;
 import com.buenws.buenws_backend.api.exception.customExceptions.ParseTokenException;
 import com.buenws.buenws_backend.api.exception.customExceptions.UserNotFoundException;
 import com.buenws.buenws_backend.api.records.UserRecords;
+import com.buenws.buenws_backend.api.repository.RefreshTokenRepository;
 import com.buenws.buenws_backend.api.repository.UserRepository;
 import com.buenws.buenws_backend.api.service.tokens.TokenService;
 import com.buenws.buenws_backend.util.BuenowsUtil;
@@ -36,12 +38,14 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenRepository refreshTokenRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService, AuthenticationManager authenticationManager) {
-        this.tokenService = tokenService;
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService, AuthenticationManager authenticationManager, RefreshTokenRepository refreshTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     //Register Logic
@@ -83,52 +87,59 @@ public class UserService {
 
             if (user.isPresent()){
                 UserEntity userEntity = user.get();
+                String token = tokenService.generateJWTToken(userEntity);
 
-                String token = tokenService
-                        .generateJWTToken(
-                                userEntity
-                        );
+                System.out.println(userEntity.getId());
+                Optional<RefreshTokenEntity> refreshTokenEntityOptional = refreshTokenRepository.findById(userEntity.getId());
 
-                String refresh_token = tokenService
-                        .generateRefreshToken(
-                                userEntity
-                        );
+                if (refreshTokenEntityOptional.isPresent()){
+                    RefreshTokenEntity refreshTokenEntity = tokenService.generateRefreshToken(refreshTokenEntityOptional.get());
 
-                return ResponseEntity.ok(
-                        new UserRecords.LoginResponseRecord(
-                                true,
-                                "Login was successful",
-                                "Bearer",
-                                token,
-                                refresh_token,
-                                tokenService.getExpirationFromToken(token).getTime(),
-                                credentialsSubmitRequestRecord.email()
-                        )
-                );
-
+                    return ResponseEntity.ok(
+                            new UserRecords.LoginResponseRecord(
+                                    true,
+                                    "Login was successful",
+                                    "Bearer",
+                                    token,
+                                    refreshTokenEntity.getToken(),
+                                    credentialsSubmitRequestRecord.email()
+                            )
+                    );
+                }else {
+                    throw new InvalidRefreshTokenException("Not a valid Refreshtoken, Please log in again.");
+                }
             }
             else {
-                throw new UserNotFoundException("User not found");
+                throw new UserNotFoundException("User not found.");
             }
 
-        }catch (ParseException | JOSEException e){
-            throw new ParseTokenException("Error processing login token");
+        }catch (JOSEException e){
+            throw new ParseTokenException("Error processing login token.");
         }
     }
 
     //RefreshToken Logic
+    @Transactional
     public UserRecords.RefreshTokenResponseRecord refreshToken (UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
-        try{
-            Optional<RefreshTokenEntity> refreshTokenObject = tokenService.validateRefreshToken(refreshTokenRequestRecord.refresh_token());
+        try {
+            RefreshTokenEntity refreshTokenEntity =  tokenService.validateRefreshToken(refreshTokenRequestRecord.refresh_token());
+            Optional<UserEntity> userEntityOptional = userRepository.findById(refreshTokenEntity.getId());
 
-            if (refreshTokenObject.isPresent()){
-                RefreshTokenEntity refreshTokenEntity = refreshTokenObject.get();
+            if (userEntityOptional.isPresent()){
+                UserEntity userEntity = userEntityOptional.get();
+
+                String JWTToken =  tokenService.generateJWTToken(userEntity);
+                RefreshTokenEntity newRefreshTokenEntity= tokenService.generateRefreshToken(refreshTokenEntity);
+
+                refreshTokenRepository.save(newRefreshTokenEntity);
+
+                return new UserRecords.RefreshTokenResponseRecord(true, "New Tokens successfully generated.",JWTToken, newRefreshTokenEntity.getToken());
+
+            }else {
+                throw new InvalidRefreshTokenException("This Refresh Token doesn't belong to a valid User");
             }
-
-            return new UserRecords.RefreshTokenResponseRecord(true, "","", "");
-        } catch (ParseException | JOSEException e) {
-            throw new ParseTokenException("Error processing refresh token");
+        }catch (ParseException | JOSEException exception){
+            throw new ParseTokenException("Error processing login token.");
         }
     }
-
 }

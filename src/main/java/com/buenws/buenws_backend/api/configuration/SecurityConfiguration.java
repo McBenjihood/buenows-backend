@@ -35,7 +35,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/user/contact-submissions").permitAll()
                         .requestMatchers("/api/user/auth/register").permitAll()
                         .requestMatchers("/api/user/auth/login").permitAll()
-                        .requestMatchers("/api/user/refresh").permitAll()
+                        .requestMatchers("/api/user/auth/refresh").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterAfter(bearerTokenAuthFilter, BasicAuthenticationFilter.class);

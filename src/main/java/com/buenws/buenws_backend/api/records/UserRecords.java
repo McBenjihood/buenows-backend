@@ -23,8 +23,7 @@ public class UserRecords
             String message,
             String tokenType,
             String token,
-            String refresh_token,
-            Long expirationDate,
+            String refreshToken,
             String email
     ){}
     public record ExpiredTokenResponseRecord(

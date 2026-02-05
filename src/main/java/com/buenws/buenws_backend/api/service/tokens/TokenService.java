@@ -15,9 +15,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.text.ParseException;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
+import java.util.Random;
 
 @Service
 public class TokenService {
@@ -47,21 +50,7 @@ public class TokenService {
                 .claim("roles", userEntity.getAuthorities())
                 .build();
 
-        return getString(claimsSet, tokenSecret);
-    }
-    public String generateRefreshToken(UserEntity userEntity) throws JOSEException {
-
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(userEntity.getEmail())
-                .issueTime(Date.from(BuenowsUtil.getCurrentDate()))
-                .expirationTime(Date.from(BuenowsUtil.getWeekFromNow()))
-                .build();
-
-        return getString(claimsSet, refreshTokenSecret);
-    }
-
-    private String getString(JWTClaimsSet claimsSet, String secret) throws JOSEException {
-        byte[] sharedSecret = secret.getBytes(StandardCharsets.UTF_8);
+        byte[] sharedSecret = refreshTokenSecret.getBytes(StandardCharsets.UTF_8);
         JWSSigner signer = new MACSigner(sharedSecret);
         Payload payload = new Payload(claimsSet.toJSONObject());
         JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), payload);
@@ -69,26 +58,43 @@ public class TokenService {
 
         return jwsObject.serialize();
     }
+    public RefreshTokenEntity generateRefreshToken(RefreshTokenEntity refreshTokenEntity) {
+        byte[] byteArray = new byte[64];
+        SecureRandom secureRandom = new SecureRandom();
+        secureRandom.nextBytes(byteArray);
+
+        String newToken = Base64.getEncoder().encodeToString(byteArray);
+        refreshTokenEntity.setToken(newToken);
+
+        return refreshTokenEntity;
+    }
 
     //Methods below validate respective token types and return their matching Entities.
-    public Optional<RefreshTokenEntity> validateRefreshToken(String token) throws ParseException, JOSEException {
-        return validateRefresh(token);
+    public RefreshTokenEntity validateRefreshToken(String token) throws ParseException, JOSEException {
+        Optional<RefreshTokenEntity> refreshTokenOptional = refreshTokenRepository.findByToken(token);
+
+        if (refreshTokenOptional.isPresent()) {
+            RefreshTokenEntity refreshTokenEntity = refreshTokenOptional.get();
+            if (BuenowsUtil.getCurrentDate().isAfter(refreshTokenEntity.getExpires_at())) {
+                return generateRefreshToken(refreshTokenEntity);
+            } else {
+                throw new ExpiredTokenException("Refresh Token is expired. Pleas log in again.");
+            }
+
+        } else {
+            throw new InvalidRefreshTokenException("Not a valid Refreshtoken, Please log in again.");
+        }
     }
     public Optional<UserEntity> validateJWTToken(String token) throws ParseException, JOSEException {
-        return validateJWT(token,tokenSecret);
-    }
-
-    private Optional<UserEntity> validateJWT(String token, String secret) throws ParseException, JOSEException{
         JWSObject jwsObject = JWSObject.parse(token);
-        JWSVerifier verifier = new MACVerifier(secret);
-
-        Date currentDate = new Date(System.currentTimeMillis());
+        JWSVerifier verifier = new MACVerifier(tokenSecret);
 
         if(!jwsObject.verify(verifier)){
             return Optional.empty();
         }
 
         JWTClaimsSet claimsSet = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
+        Date currentDate = new Date(System.currentTimeMillis());
 
         if (currentDate.after(claimsSet.getExpirationTime())){
             throw new ExpiredTokenException("JWTToken has expired");
@@ -96,16 +102,9 @@ public class TokenService {
 
         return userRepository.findByEmail(claimsSet.getSubject());
     }
-    private Optional<RefreshTokenEntity> validateRefresh(String refreshToken){
-        try {
-            //
-            // IMPORTANT TODO:  Before returning tokenEntity, check if token is expired. If expired throw ExpiredTokenException and catch it in UserService so an appropriate response can be made (Will probably be caught by GlobalExceptionhandler, so that needs to be accounted for).
-            //
-            return refreshTokenRepository.findByToken(refreshToken);
-        }catch (Exception e){
-            throw new InvalidRefreshTokenException("Not a valid Refreshtoken, Please log in again");
-        }
-    }
+
+
+
 
     //Methods below Parse Details about User from Token
     public String getUsernameFromToken(String token) throws ParseException {

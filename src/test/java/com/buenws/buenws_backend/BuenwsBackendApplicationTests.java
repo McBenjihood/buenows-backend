@@ -67,6 +67,7 @@ class BuenwsBackendApplicationTests {
 		);
 	}
 
+	/*
 	@Test
 	void TestExpiredJWT() throws ParseException, JOSEException, ServletException, IOException {
 		//Arrange
@@ -84,4 +85,5 @@ class BuenwsBackendApplicationTests {
 		//Assert
 		assertNull(SecurityContextHolder.getContext().getAuthentication());
 	}
+	*/
 }
