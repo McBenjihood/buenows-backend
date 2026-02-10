@@ -3,7 +3,6 @@ package com.buenws.buenws_backend.api.service;
 import com.buenws.buenws_backend.api.entity.RefreshTokenEntity;
 import com.buenws.buenws_backend.api.entity.UserEntity;
 import com.buenws.buenws_backend.api.exception.customExceptions.CouldNotCreateResourceException;
-import com.buenws.buenws_backend.api.exception.customExceptions.InvalidRefreshTokenException;
 import com.buenws.buenws_backend.api.exception.customExceptions.ParseTokenException;
 import com.buenws.buenws_backend.api.exception.customExceptions.UserNotFoundException;
 import com.buenws.buenws_backend.api.records.UserRecords;
@@ -12,24 +11,19 @@ import com.buenws.buenws_backend.api.repository.UserRepository;
 import com.buenws.buenws_backend.api.service.tokens.TokenService;
 import com.buenws.buenws_backend.util.BuenowsUtil;
 import com.nimbusds.jose.JOSEException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+
+import static org.springframework.http.ResponseEntity.ok;
 
 @Service
 public class UserService {
@@ -57,10 +51,15 @@ public class UserService {
             userEntity.setAuthorities(List.of("ROLE_USER"));
             userEntity.setEmail(registerRequestRecord.email());
             userEntity.setPassword(passwordEncoder.encode(registerRequestRecord.password()));
+            userEntity.setRefreshTokenEntity(
+                    new RefreshTokenEntity(
+                            tokenService.generateRefreshToken(),
+                            BuenowsUtil.getCurrentDate(),
+                            BuenowsUtil.getWeekFromNow(),
+                            userEntity
+                    ));
 
-            System.out.println("Trying to create User...");
             userRepository.save(userEntity);
-
         } catch (Exception e) {
             if (e.getMessage().toUpperCase().contains("DUPLICATE KEY VALUE")){
                 throw new CouldNotCreateResourceException("User with Email: '" + registerRequestRecord.email() + "' already exists");
@@ -68,46 +67,41 @@ public class UserService {
                 throw new CouldNotCreateResourceException("Could not create user: " + registerRequestRecord.email());
             }
         }
-
         return new UserRecords.RegisterResponseRecord(true, "User created successfully");
     }
 
     //Login Logic
     public ResponseEntity<UserRecords.LoginResponseRecord> loginUser(UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
         try{
-
             Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
                     credentialsSubmitRequestRecord.email(),
                     credentialsSubmitRequestRecord.password()
             );
-
             authenticationManager.authenticate(authenticationRequest);
 
             Optional<UserEntity> user = userRepository.findByEmail(credentialsSubmitRequestRecord.email());
 
             if (user.isPresent()){
                 UserEntity userEntity = user.get();
-                String token = tokenService.generateJWTToken(userEntity);
 
-                System.out.println(userEntity.getId());
-                Optional<RefreshTokenEntity> refreshTokenEntityOptional = refreshTokenRepository.findById(userEntity.getId());
+                String JWTToken = tokenService.generateJWTToken(userEntity);
+                String RefreshToken = tokenService.generateRefreshToken();
 
-                if (refreshTokenEntityOptional.isPresent()){
-                    RefreshTokenEntity refreshTokenEntity = tokenService.generateRefreshToken(refreshTokenEntityOptional.get());
+                userEntity.getRefreshTokenEntity().setToken(RefreshToken);
+                userRepository.save(userEntity);
 
-                    return ResponseEntity.ok(
-                            new UserRecords.LoginResponseRecord(
-                                    true,
-                                    "Login was successful",
-                                    "Bearer",
-                                    token,
-                                    refreshTokenEntity.getToken(),
-                                    credentialsSubmitRequestRecord.email()
-                            )
-                    );
-                }else {
-                    throw new InvalidRefreshTokenException("Not a valid Refreshtoken, Please log in again.");
-                }
+                return ResponseEntity
+                        .ok()
+                        .body(
+                                new UserRecords.LoginResponseRecord(
+                                        true,
+                                        "Login was Successful",
+                                        "Bearer",
+                                        JWTToken,
+                                        RefreshToken,
+                                        userEntity.getEmail()
+                        )
+                );
             }
             else {
                 throw new UserNotFoundException("User not found.");
@@ -122,22 +116,24 @@ public class UserService {
     @Transactional
     public UserRecords.RefreshTokenResponseRecord refreshToken (UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
         try {
-            RefreshTokenEntity refreshTokenEntity =  tokenService.validateRefreshToken(refreshTokenRequestRecord.refresh_token());
-            Optional<UserEntity> userEntityOptional = userRepository.findById(refreshTokenEntity.getId());
+            RefreshTokenEntity refreshTokenEntity = tokenService.validateRefreshToken(refreshTokenRequestRecord.refresh_token());
+            UserEntity userEntity = refreshTokenEntity.getUserEntity();
 
-            if (userEntityOptional.isPresent()){
-                UserEntity userEntity = userEntityOptional.get();
+            String JWTToken =  tokenService.generateJWTToken(userEntity);
+            String RefreshToken = tokenService.generateRefreshToken();
 
-                String JWTToken =  tokenService.generateJWTToken(userEntity);
-                RefreshTokenEntity newRefreshTokenEntity= tokenService.generateRefreshToken(refreshTokenEntity);
+            refreshTokenEntity.setToken(RefreshToken);
+            refreshTokenEntity.setEdited_at(BuenowsUtil.getCurrentDate());
+            refreshTokenEntity.setExpires_at(BuenowsUtil.getWeekFromNow());
 
-                refreshTokenRepository.save(newRefreshTokenEntity);
+            userRepository.save(userEntity);
 
-                return new UserRecords.RefreshTokenResponseRecord(true, "New Tokens successfully generated.",JWTToken, newRefreshTokenEntity.getToken());
-
-            }else {
-                throw new InvalidRefreshTokenException("This Refresh Token doesn't belong to a valid User");
-            }
+            return new UserRecords.RefreshTokenResponseRecord(
+                    true,
+                    "New Tokens successfully generated.",
+                    JWTToken,
+                    RefreshToken
+            );
         }catch (ParseException | JOSEException exception){
             throw new ParseTokenException("Error processing login token.");
         }

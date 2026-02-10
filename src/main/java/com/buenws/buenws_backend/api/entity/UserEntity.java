@@ -39,7 +39,7 @@ public class UserEntity {
     @Column(name = "password")
     private String password;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private RefreshTokenEntity refreshTokenEntity;
 
 
@@ -65,6 +65,7 @@ public class UserEntity {
     public void setPassword(String password) {
         this.password = password;
     }
+    public String getPassword(){return password;}
 
     public RefreshTokenEntity getRefreshTokenEntity() {
         return refreshTokenEntity;

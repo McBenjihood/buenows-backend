@@ -83,5 +83,17 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(ExpiredTokenException.class)
+    public ResponseEntity<UserRecords.DefaultResponseRecord> handleExpiredTokenException (Exception ex){
+        return ResponseEntity
+                .badRequest()
+                .body(
+                        new UserRecords.DefaultResponseRecord(
+                                false,
+                                ex.getMessage()
+                        )
+                );
+    }
+
 }
 

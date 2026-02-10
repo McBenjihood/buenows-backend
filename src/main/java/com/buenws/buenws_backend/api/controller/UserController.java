@@ -28,10 +28,12 @@ public class UserController {
         return ResponseEntity.ok(userService.registerUser(credentialsSubmitRequestRecord));
     }
 
+
     @PostMapping("/auth/login")
     public ResponseEntity<UserRecords.LoginResponseRecord> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return userService.loginUser(credentialsSubmitRequestRecord);
     }
+
 
     @PostMapping("/auth/refresh")
     public ResponseEntity<UserRecords.RefreshTokenResponseRecord> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){

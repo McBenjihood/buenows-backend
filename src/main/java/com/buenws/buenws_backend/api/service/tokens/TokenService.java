@@ -58,26 +58,23 @@ public class TokenService {
 
         return jwsObject.serialize();
     }
-    public RefreshTokenEntity generateRefreshToken(RefreshTokenEntity refreshTokenEntity) {
+    public String generateRefreshToken() {
         byte[] byteArray = new byte[64];
         SecureRandom secureRandom = new SecureRandom();
         secureRandom.nextBytes(byteArray);
 
-        String newToken = Base64.getEncoder().encodeToString(byteArray);
-        refreshTokenEntity.setToken(newToken);
-
-        return refreshTokenEntity;
+        return Base64.getEncoder().encodeToString(byteArray);
     }
 
     //Methods below validate respective token types and return their matching Entities.
     public RefreshTokenEntity validateRefreshToken(String token) throws ParseException, JOSEException {
         Optional<RefreshTokenEntity> refreshTokenOptional = refreshTokenRepository.findByToken(token);
-
         if (refreshTokenOptional.isPresent()) {
             RefreshTokenEntity refreshTokenEntity = refreshTokenOptional.get();
-            if (BuenowsUtil.getCurrentDate().isAfter(refreshTokenEntity.getExpires_at())) {
-                return generateRefreshToken(refreshTokenEntity);
+            if (BuenowsUtil.getCurrentDate().isBefore(refreshTokenEntity.getExpires_at())) {
+                return refreshTokenEntity;
             } else {
+
                 throw new ExpiredTokenException("Refresh Token is expired. Pleas log in again.");
             }
 
@@ -85,6 +82,7 @@ public class TokenService {
             throw new InvalidRefreshTokenException("Not a valid Refreshtoken, Please log in again.");
         }
     }
+
     public Optional<UserEntity> validateJWTToken(String token) throws ParseException, JOSEException {
         JWSObject jwsObject = JWSObject.parse(token);
         JWSVerifier verifier = new MACVerifier(tokenSecret);

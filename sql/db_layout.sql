@@ -32,7 +32,7 @@ CREATE TABLE inquiries(
 CREATE TABLE refresh_tokens (
     user_id uuid NOT NULL,
     token VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    edited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP + interval '7 days',
 
     CONSTRAINT fk_user_authorities_users
