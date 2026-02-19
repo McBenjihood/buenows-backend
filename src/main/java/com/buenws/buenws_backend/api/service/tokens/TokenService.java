@@ -4,6 +4,7 @@ import com.buenws.buenws_backend.api.entity.RefreshTokenEntity;
 import com.buenws.buenws_backend.api.entity.UserEntity;
 import com.buenws.buenws_backend.api.exception.customExceptions.ExpiredTokenException;
 import com.buenws.buenws_backend.api.exception.customExceptions.InvalidRefreshTokenException;
+import com.buenws.buenws_backend.api.exception.customExceptions.ParseTokenException;
 import com.buenws.buenws_backend.api.repository.RefreshTokenRepository;
 import com.buenws.buenws_backend.api.repository.UserRepository;
 import com.buenws.buenws_backend.util.BuenowsUtil;
@@ -20,7 +21,6 @@ import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
-import java.util.Random;
 
 @Service
 public class TokenService {
@@ -36,8 +36,6 @@ public class TokenService {
     //Secret Values sources from secrets.properties
     @Value("${jwt.secret}")
     private String tokenSecret;
-    @Value("${refresh.secret}")
-    private String refreshTokenSecret;
 
     //Methods below are for generating JWTToken and RefreshToken
     public String generateJWTToken(UserEntity userEntity) throws JOSEException {
@@ -50,7 +48,7 @@ public class TokenService {
                 .claim("roles", userEntity.getAuthorities())
                 .build();
 
-        byte[] sharedSecret = refreshTokenSecret.getBytes(StandardCharsets.UTF_8);
+        byte[] sharedSecret = tokenSecret.getBytes(StandardCharsets.UTF_8);
         JWSSigner signer = new MACSigner(sharedSecret);
         Payload payload = new Payload(claimsSet.toJSONObject());
         JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), payload);
@@ -74,35 +72,34 @@ public class TokenService {
             if (BuenowsUtil.getCurrentDate().isBefore(refreshTokenEntity.getExpires_at())) {
                 return refreshTokenEntity;
             } else {
-
-                throw new ExpiredTokenException("Refresh Token is expired. Pleas log in again.");
+                throw new ExpiredTokenException("Please Log in again.", "EXPIRED_TOKEN");
             }
-
         } else {
-            throw new InvalidRefreshTokenException("Not a valid Refreshtoken, Please log in again.");
+            throw new InvalidRefreshTokenException("Please Log in again.", "INVALID_TOKEN");
         }
     }
-
-    public Optional<UserEntity> validateJWTToken(String token) throws ParseException, JOSEException {
-        JWSObject jwsObject = JWSObject.parse(token);
-        JWSVerifier verifier = new MACVerifier(tokenSecret);
-
-        if(!jwsObject.verify(verifier)){
-            return Optional.empty();
+    public Optional<UserEntity> validateJWTToken(String token){
+        JWTClaimsSet claimsSet;
+        try {
+            JWSObject jwsObject = JWSObject.parse(token);
+            JWSVerifier verifier = new MACVerifier(tokenSecret.getBytes(StandardCharsets.UTF_8));
+            if(!jwsObject.verify(verifier)){
+                throw new ParseTokenException("Please Log in again.", "INVALID_TOKEN");
+            }
+            claimsSet = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
+        }catch (JOSEException | ParseException e) {
+            throw new ParseTokenException("Please Log in again.", "INVALID_TOKEN", e);
         }
 
-        JWTClaimsSet claimsSet = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
+        //Validating if Token is expired.
         Date currentDate = new Date(System.currentTimeMillis());
-
         if (currentDate.after(claimsSet.getExpirationTime())){
-            throw new ExpiredTokenException("JWTToken has expired");
+            throw new ExpiredTokenException("Please Log in again.", "EXPIRED_TOKEN");
         }
 
+        //Returning potential User from DB.
         return userRepository.findByEmail(claimsSet.getSubject());
     }
-
-
-
 
     //Methods below Parse Details about User from Token
     public String getUsernameFromToken(String token) throws ParseException {
@@ -121,9 +118,4 @@ public class TokenService {
         }
         return token;
     }
-
-    //Methods below are for getting Date Objects for required Dates in this class.
-
-
-
 }

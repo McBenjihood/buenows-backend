@@ -36,7 +36,10 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected  void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        //Getting accesToken String
         String accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
+
+        //Check if accessToken is valid
         if (!accessToken.isEmpty()){
             try {
                 Optional<UserEntity> userEntity = tokenService.validateJWTToken(accessToken);
@@ -48,21 +51,29 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
                     Authentication authenticationToken = new UsernamePasswordAuthenticationToken(user.getEmail(),null, authorities);
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
                 }
-            } catch (JOSEException | ParseException e) {
-                throw new ParseTokenException("Error processing Token");
+            } catch (ParseTokenException e) {
+                response = editResponse(response, "Please Log in again.", "INVALID_TOKEN");
+                return;
             }
             catch (ExpiredTokenException e){
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-
-                byte[] responseBody = new ObjectMapper().writeValueAsBytes(new UserRecords.ExpiredTokenResponseRecord(
-                        "TOKEN_EXPIRED",
-                        "Token has expired"));
-                response.getOutputStream().write(responseBody);
+                response = editResponse(response, "Please Log in again.", "EXPIRED_TOKEN");
                 return;
             }
         }
         filterChain.doFilter(request, response);
     }
 
+    private HttpServletResponse editResponse(HttpServletResponse response, String msg, String errorCode) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+
+        byte[] responseBody = new ObjectMapper().writeValueAsBytes(UserRecords.ApiResponse.error(
+                msg,
+                new UserRecords.ErrorResponseRecord(
+                        errorCode
+                )
+        ));
+        response.getOutputStream().write(responseBody);
+        return response;
+    }
 }

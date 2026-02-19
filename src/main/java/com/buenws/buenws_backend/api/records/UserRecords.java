@@ -2,39 +2,38 @@ package com.buenws.buenws_backend.api.records;
 
 public class UserRecords
 {
-    //
-    // IMPORTANT TODO: Implement Generic Wrappers so dry principle is still upheld.
-    //
-
-
-    //Responses
-    //Default Response
-    public record DefaultResponseRecord(
-            boolean successful,
-            String message
-    ){}
-    //Specific Responses
-    public record RegisterResponseRecord(
-            boolean successful,
-            String message
-    ){}
-    public record LoginResponseRecord(
+    //Generic Response
+    public record ApiResponse<T>(
             boolean successful,
             String message,
-            String tokenType,
-            String token,
+            T data
+    ){
+        //Successful Response
+        public static <T> ApiResponse<T> success (String message, T data){
+            return new ApiResponse<>(true, message, data);
+        }
+        public static <T> ApiResponse<T> success (String message){
+            return new ApiResponse<>(true, message, null);
+        }
+
+        //Unsuccessful Response
+        public static <T> ApiResponse<T> error (String message, T data){
+            return new ApiResponse<>(false, message, data);
+        }
+    }
+
+    //Specific Responses
+    public record LoginResponseRecord(
+            String JWTToken,
             String refreshToken,
             String email
     ){}
-    public record ExpiredTokenResponseRecord(
-            String errorCode,
-            String message
-    ){}
     public record RefreshTokenResponseRecord(
-      boolean successful,
-      String message,
-      String token,
-      String refreshToken
+            String JWTToken,
+            String refreshToken
+    ){}
+    public record ErrorResponseRecord(
+            String errorCode
     ){}
 
 

@@ -17,7 +17,7 @@ public class InquiryService {
     }
 
     @Transactional
-    public UserRecords.DefaultResponseRecord submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
+    public void submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
         try {
             InquiryEntity inquiry = new InquiryEntity();
 
@@ -27,11 +27,7 @@ public class InquiryService {
 
             inquiryRepository.save(inquiry);
         } catch (Exception e) {
-            System.out.println("Error submitting inquiry to database: " + e.getMessage());
-            throw new InvalidInquiryException("Could not submit inquiry to Database");
+            throw new InvalidInquiryException("Could not submit inquiry to Database", "INVALID_INQUIRY", e);
         }
-
-        return new UserRecords.DefaultResponseRecord(true, "Inquiry submitted successfully");
     }
-
 }

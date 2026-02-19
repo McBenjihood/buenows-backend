@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api")
 public class UserController {
 
     private final InquiryService inquiryService;
@@ -18,25 +18,31 @@ public class UserController {
         this.userService = userService;
     }
 
+    //Contact Form Submission
     @PostMapping("/contact-submissions")
-    public ResponseEntity<UserRecords.DefaultResponseRecord> submitContactForm(@RequestBody UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
-        return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequestRecord));
+    public ResponseEntity<UserRecords.ApiResponse> submitContactForm(@RequestBody UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
+        inquiryService.submitContactForm(formSubmissionRequestRecord);
+        return ResponseEntity.ok(UserRecords.ApiResponse.success("Contact Form was submitted."));
     }
 
-    @PostMapping("/auth/register")
-    public ResponseEntity<UserRecords.RegisterResponseRecord> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
+    //Auth Endpoints
+    @GetMapping("/user/auth")
+    public ResponseEntity<UserRecords.ApiResponse> checkAuth(){
+        return ResponseEntity.ok(UserRecords.ApiResponse.success("Valid Authentication"));
+    }
+
+    @PostMapping("/user/auth/register")
+    public ResponseEntity<UserRecords.ApiResponse> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return ResponseEntity.ok(userService.registerUser(credentialsSubmitRequestRecord));
     }
 
-
-    @PostMapping("/auth/login")
-    public ResponseEntity<UserRecords.LoginResponseRecord> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
-        return userService.loginUser(credentialsSubmitRequestRecord);
+    @PostMapping("/user/auth/login")
+    public ResponseEntity<UserRecords.ApiResponse> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
+        return ResponseEntity.ok(userService.loginUser(credentialsSubmitRequestRecord));
     }
 
-
-    @PostMapping("/auth/refresh")
-    public ResponseEntity<UserRecords.RefreshTokenResponseRecord> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
+    @PostMapping("/user/auth/refresh")
+    public ResponseEntity<UserRecords.ApiResponse> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
         return ResponseEntity.ok(userService.refreshToken(refreshTokenRequestRecord));
     }
 }

@@ -12,88 +12,62 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidInquiryException.class)
-    public ResponseEntity<UserRecords.DefaultResponseRecord> handleException(Exception ex) {
+    public ResponseEntity<UserRecords.ApiResponse> handleException(InvalidInquiryException ex) {
         return ResponseEntity
                 .badRequest()
                 .body(
-                        new UserRecords.DefaultResponseRecord(false, ex.getMessage())
+                        UserRecords.ApiResponse.error(
+                                ex.getMessage(),
+                                new UserRecords.ErrorResponseRecord(
+                                    ex.getErrorCode()
+                                )
+                        )
                 );
     }
 
-    @ExceptionHandler(CouldNotCreateResourceException.class)
-    public ResponseEntity<UserRecords.DefaultResponseRecord> handleCouldNotCreateResourceException(Exception ex) {
-        return ResponseEntity
-                .badRequest()
-                .body(
-                        new UserRecords.DefaultResponseRecord(false, ex.getMessage())
-                );
-    }
+
 
     @ExceptionHandler(ParseTokenException.class)
-    public ResponseEntity<UserRecords.LoginResponseRecord> handleTokenException(Exception ex) {
+    public ResponseEntity<UserRecords.ApiResponse> handleTokenException(ParseTokenException ex) {
         return ResponseEntity
                 .badRequest()
                 .body(
-                        new UserRecords.LoginResponseRecord(
-                                false,
+                        UserRecords.ApiResponse.error(
                                 ex.getMessage(),
-                                "",
-                                "",
-                                "",
-                                ""
+                                new UserRecords.ErrorResponseRecord(
+                                        ex.getErrorCode()
+                                )
                         )
                 );
     }
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<UserRecords.LoginResponseRecord> handleAuthenticationException(Exception ex){
-        return ResponseEntity
-                .badRequest()
-                .body(
-                        new UserRecords.LoginResponseRecord(
-                                false,
-                                "Invalid email or password",
-                                "",
-                                "",
-                                "",
-                                ""
-                        )
-                );
-    }
-
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<UserRecords.DefaultResponseRecord> handleUserNotFoundException(Exception ex) {
-        return ResponseEntity
-                .badRequest()
-                .body(
-                        new UserRecords.DefaultResponseRecord(false, ex.getMessage())
-                );
-    }
 
     @ExceptionHandler(InvalidRefreshTokenException.class)
-    public ResponseEntity<UserRecords.RefreshTokenResponseRecord> handleInvalidRefreshTokenException(Exception ex){
+    public ResponseEntity<UserRecords.ApiResponse> handleInvalidRefreshTokenException(InvalidRefreshTokenException ex){
         return ResponseEntity
                 .badRequest()
                 .body(
-                        new UserRecords.RefreshTokenResponseRecord(
-                                false,
+                        UserRecords.ApiResponse.error(
                                 ex.getMessage(),
-                                "",
-                                "")
+                                new UserRecords.ErrorResponseRecord(
+                                        ex.getErrorCode()
+                                )
+                        )
                 );
     }
 
     @ExceptionHandler(ExpiredTokenException.class)
-    public ResponseEntity<UserRecords.DefaultResponseRecord> handleExpiredTokenException (Exception ex){
+    public ResponseEntity<UserRecords.ApiResponse> handleExpiredTokenException (ExpiredTokenException ex){
         return ResponseEntity
                 .badRequest()
                 .body(
-                        new UserRecords.DefaultResponseRecord(
-                                false,
-                                ex.getMessage()
+                        UserRecords.ApiResponse.error(
+                                ex.getMessage(),
+                                new UserRecords.ErrorResponseRecord(
+                                        ex.getErrorCode()
+                                )
                         )
                 );
     }
-
 }
 
