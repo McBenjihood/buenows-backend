@@ -23,8 +23,11 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
-    @Autowired
     BearerTokenAuthFilter bearerTokenAuthFilter;
+
+    public SecurityConfiguration(BearerTokenAuthFilter bearerTokenAuthFilter) {
+        this.bearerTokenAuthFilter = bearerTokenAuthFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
@@ -32,7 +35,7 @@ public class SecurityConfiguration {
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests((authorize) ->  authorize
-                        .requestMatchers("/api/user/contact-submissions").permitAll()
+                        .requestMatchers("/api/contact-submissions").permitAll()
                         .requestMatchers("/api/user/auth/register").permitAll()
                         .requestMatchers("/api/user/auth/login").permitAll()
                         .requestMatchers("/api/user/auth/refresh").permitAll()

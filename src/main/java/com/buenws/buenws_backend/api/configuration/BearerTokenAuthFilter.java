@@ -16,8 +16,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -29,9 +31,11 @@ import java.util.Optional;
 public class BearerTokenAuthFilter extends OncePerRequestFilter {
 
     TokenService tokenService;
+    HandlerExceptionResolver handlerExceptionResolver;
 
-    public BearerTokenAuthFilter(TokenService tokenService) {
+    public BearerTokenAuthFilter(TokenService tokenService, HandlerExceptionResolver handlerExceptionResolver) {
         this.tokenService = tokenService;
+        this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
     @Override
@@ -51,29 +55,11 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
                     Authentication authenticationToken = new UsernamePasswordAuthenticationToken(user.getEmail(),null, authorities);
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
                 }
-            } catch (ParseTokenException e) {
-                response = editResponse(response, "Please Log in again.", "INVALID_TOKEN");
-                return;
-            }
-            catch (ExpiredTokenException e){
-                response = editResponse(response, "Please Log in again.", "EXPIRED_TOKEN");
+            }catch (ParseTokenException | ExpiredTokenException e) {
+                handlerExceptionResolver.resolveException(request, response, null, e);
                 return;
             }
         }
         filterChain.doFilter(request, response);
-    }
-
-    private HttpServletResponse editResponse(HttpServletResponse response, String msg, String errorCode) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-
-        byte[] responseBody = new ObjectMapper().writeValueAsBytes(UserRecords.ApiResponse.error(
-                msg,
-                new UserRecords.ErrorResponseRecord(
-                        errorCode
-                )
-        ));
-        response.getOutputStream().write(responseBody);
-        return response;
     }
 }

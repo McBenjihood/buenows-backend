@@ -21,8 +21,7 @@ public class UserController {
     //Contact Form Submission
     @PostMapping("/contact-submissions")
     public ResponseEntity<UserRecords.ApiResponse> submitContactForm(@RequestBody UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
-        inquiryService.submitContactForm(formSubmissionRequestRecord);
-        return ResponseEntity.ok(UserRecords.ApiResponse.success("Contact Form was submitted."));
+        return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequestRecord));
     }
 
     //Auth Endpoints

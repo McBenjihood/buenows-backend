@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -35,21 +36,13 @@ class BuenwsBackendApplicationTests {
 	//Arrange
 	@Autowired
 	CustomUserDetailsService userDetailsSerivce;
-
-	private BearerTokenAuthFilter filter;
-	private HttpServletRequest request;
-	private HttpServletResponse response;
-	private FilterChain filterChain;
 	private TokenService tokenService;
+	private HandlerExceptionResolver handlerExceptionResolver;
 
 	@BeforeEach
 	void setUp(){
 		tokenService = mock(TokenService.class);
-		filter = new BearerTokenAuthFilter(tokenService);
-		request = mock(HttpServletRequest.class);
-		response = mock(HttpServletResponse.class);
-		filterChain = mock(FilterChain.class);
-
+		handlerExceptionResolver = mock(HandlerExceptionResolver.class);
 		SecurityContextHolder.clearContext();
 	}
 
@@ -67,23 +60,4 @@ class BuenwsBackendApplicationTests {
 		);
 	}
 
-	/*
-	@Test
-	void TestExpiredJWT() throws ParseException, JOSEException, ServletException, IOException {
-		//Arrange
-		String mockToken = "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2J1ZW5vd3Mub3JnIiwic3ViIjoiYmVuamFtaW5taWthZ2VycmVzaGVpbUBnbWFpbC5jb20iLCJleHAiOjE3Njk2ODM4MTMsImlhdCI6MTc2OTY4MDIxMywicm9sZXMiOlsiUk9MRV9VU0VSIl19.oWhonw_z0p8QDPN40VQugGFWnDrZ_NueO7E1Tv6dtFY";
-		Date expDate = new Date(System.currentTimeMillis() - 1000000);
-
-		when(request.getHeader("Authorization")).thenReturn("Bearer " + mockToken);
-		when(tokenService.parseTokenFromHeader(anyString())).thenReturn(mockToken);
-		when(tokenService.getExpirationFromToken(mockToken)).thenReturn(expDate);
-		when(tokenService.validateToken(mockToken)).thenReturn(Optional.of(new UserEntity()));
-
-		//Act
-		filter.doFilter(request, response, filterChain);
-
-		//Assert
-		assertNull(SecurityContextHolder.getContext().getAuthentication());
-	}
-	*/
 }

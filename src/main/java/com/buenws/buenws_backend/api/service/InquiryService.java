@@ -17,7 +17,7 @@ public class InquiryService {
     }
 
     @Transactional
-    public void submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
+    public UserRecords.ApiResponse submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
         try {
             InquiryEntity inquiry = new InquiryEntity();
 
@@ -26,6 +26,7 @@ public class InquiryService {
             inquiry.setMessage(formSubmissionRequestRecord.message());
 
             inquiryRepository.save(inquiry);
+            return UserRecords.ApiResponse.success("Contact Form was submitted.");
         } catch (Exception e) {
             throw new InvalidInquiryException("Could not submit inquiry to Database", "INVALID_INQUIRY", e);
         }
