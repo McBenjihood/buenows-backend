@@ -17,7 +17,7 @@ public class InquiryService {
     }
 
     @Transactional
-    public UserRecords.ApiResponse submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
+    public UserRecords.ApiResponse<Void> submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
         try {
             InquiryEntity inquiry = new InquiryEntity();
 

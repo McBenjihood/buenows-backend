@@ -41,7 +41,7 @@ public class UserService {
 
     //Register Logic
     @Transactional
-    public UserRecords.ApiResponse registerUser(UserRecords.CredentialsSubmitRequestRecord registerRequestRecord) {
+    public UserRecords.ApiResponse<Void> registerUser(UserRecords.CredentialsSubmitRequestRecord registerRequestRecord) {
         UserEntity userEntity = new UserEntity();
 
         userEntity.setAuthorities(List.of("ROLE_USER"));
@@ -70,7 +70,7 @@ public class UserService {
 
     //Login Logic
     @Transactional
-    public UserRecords.ApiResponse loginUser(UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
+    public UserRecords.ApiResponse<UserRecords.LoginResponseRecord> loginUser(UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
 
             Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
                     credentialsSubmitRequestRecord.email(),
@@ -110,7 +110,7 @@ public class UserService {
 
     //RefreshToken Logic
     @Transactional
-    public UserRecords.ApiResponse refreshToken (UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
+    public UserRecords.ApiResponse<UserRecords.RefreshTokenResponseRecord> refreshToken (UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
 
         RefreshTokenEntity refreshTokenEntity;
         String JWTToken;

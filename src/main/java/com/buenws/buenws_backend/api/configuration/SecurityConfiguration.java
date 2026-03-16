@@ -35,7 +35,7 @@ public class SecurityConfiguration {
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests((authorize) ->  authorize
-                        .requestMatchers("/api/contact-submissions").permitAll()
+                        .requestMatchers("/api/inquiry/contact-submissions").permitAll()
                         .requestMatchers("/api/user/auth/register").permitAll()
                         .requestMatchers("/api/user/auth/login").permitAll()
                         .requestMatchers("/api/user/auth/refresh").permitAll()

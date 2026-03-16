@@ -1,6 +1,8 @@
 package com.buenws.buenws_backend.util;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 public class BuenowsUtil {
@@ -12,5 +14,9 @@ public class BuenowsUtil {
     }
     public static Instant getWeekFromNow(){
         return Instant.now().plusMillis(604800 * 1000);
+    }
+
+    public String getFilePrefix() {
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
     }
 }

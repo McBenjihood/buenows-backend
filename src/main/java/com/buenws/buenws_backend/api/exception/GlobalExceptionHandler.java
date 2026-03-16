@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
             ExpiredTokenException.class,
             DuplicateUserException.class
     })
-    public ResponseEntity<UserRecords.ApiResponse> handleException(CustomBaseException ex) {
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.ErrorResponseRecord>> handleException(CustomBaseException ex) {
         return ResponseEntity
                 .badRequest()
                 .body(
