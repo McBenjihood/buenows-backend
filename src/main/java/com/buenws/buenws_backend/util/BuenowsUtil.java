@@ -16,7 +16,7 @@ public class BuenowsUtil {
         return Instant.now().plusMillis(604800 * 1000);
     }
 
-    public String getFilePrefix() {
+    public static String getFilePrefix() {
         return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
     }
 }

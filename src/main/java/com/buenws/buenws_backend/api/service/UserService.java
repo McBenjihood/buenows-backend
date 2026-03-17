@@ -22,8 +22,6 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 
-import static org.springframework.http.ResponseEntity.ok;
-
 @Service
 public class UserService {
 
