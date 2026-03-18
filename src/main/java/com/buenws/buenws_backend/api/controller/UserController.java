@@ -22,17 +22,17 @@ public class UserController {
         return ResponseEntity.ok(UserRecords.ApiResponse.success("Valid Authentication"));
     }
 
-    @PostMapping("/user/auth/register")
+    @PostMapping("/auth/register")
     public ResponseEntity<UserRecords.ApiResponse<Void>> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return ResponseEntity.ok(userService.registerUser(credentialsSubmitRequestRecord));
     }
 
-    @PostMapping("/user/auth/login")
+    @PostMapping("/auth/login")
     public ResponseEntity<UserRecords.ApiResponse<UserRecords.LoginResponseRecord>> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
         return ResponseEntity.ok(userService.loginUser(credentialsSubmitRequestRecord));
     }
 
-    @PostMapping("/user/auth/refresh")
+    @PostMapping("/auth/refresh")
     public ResponseEntity<UserRecords.ApiResponse<UserRecords.RefreshTokenResponseRecord>> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
         return ResponseEntity.ok(userService.refreshToken(refreshTokenRequestRecord));
     }
