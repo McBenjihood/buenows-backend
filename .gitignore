@@ -1,4 +1,6 @@
-uploads
+uploads/**
+src/main/resources/static**
+
 
 HELP.md
 target/
