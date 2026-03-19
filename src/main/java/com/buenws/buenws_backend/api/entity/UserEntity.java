@@ -24,8 +24,8 @@ public class UserEntity {
 
     //Columns
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
+    @GeneratedValue(generator = "UUID")
+    @Column(name = "user_id", updatable = false, nullable = false)
     private UUID id;
 
     @ElementCollection(fetch = FetchType.EAGER)
