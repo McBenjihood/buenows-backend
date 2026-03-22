@@ -1,5 +1,7 @@
 package com.buenws.buenws_backend.API.Records;
 
+import java.util.UUID;
+
 public class UserRecords
 {
     //Generic Response
@@ -50,4 +52,9 @@ public class UserRecords
     public record RefreshTokenRequestRecord(
             String refresh_token
     ){}
+    public record UserProfileResponseRecord(
+            UUID id,
+            String email,
+            java.util.List<String> authorities
+    ) {}
 }
