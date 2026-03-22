@@ -4,7 +4,6 @@ import com.buenws.buenws_backend.API.Records.UserRecords;
 import com.buenws.buenws_backend.API.Service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/user")
@@ -20,11 +19,6 @@ public class UserController {
     @GetMapping("auth")
     public ResponseEntity<UserRecords.ApiResponse<Void>> checkAuth(){
         return ResponseEntity.ok(UserRecords.ApiResponse.success("Valid Authentication"));
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.UserProfileResponseRecord>> getCurrentUser(Authentication authentication) {
-        return ResponseEntity.ok(userService.getCurrentUser(authentication.getName()));
     }
 
     @PostMapping("auth/register")

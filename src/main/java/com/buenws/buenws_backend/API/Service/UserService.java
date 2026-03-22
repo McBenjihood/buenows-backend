@@ -138,19 +138,4 @@ public class UserService {
                 )
         );
     }
-
-    @Transactional(readOnly = true)
-    public UserRecords.ApiResponse<UserRecords.UserProfileResponseRecord> getCurrentUser(String email) {
-        UserEntity userEntity = userRepository.findByEmail(email)
-                .orElseThrow(() -> new InvalidUserException("User could not be found.", "INVALID_USER"));
-
-        return UserRecords.ApiResponse.success(
-                "Current user loaded successfully.",
-                new UserRecords.UserProfileResponseRecord(
-                        userEntity.getId(),
-                        userEntity.getEmail(),
-                        userEntity.getAuthorities()
-                )
-        );
-    }
 }
