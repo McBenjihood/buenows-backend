@@ -1,5 +1,6 @@
 package com.buenws.buenws_backend.API.Configuration;
 
+import com.buenws.buenws_backend.API.Service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,9 +24,11 @@ import java.util.List;
 public class SecurityConfiguration {
 
     BearerTokenAuthFilter bearerTokenAuthFilter;
+    CustomUserDetailsService customUserDetailsService;
 
-    public SecurityConfiguration(BearerTokenAuthFilter bearerTokenAuthFilter) {
+    public SecurityConfiguration(BearerTokenAuthFilter bearerTokenAuthFilter, CustomUserDetailsService customUserDetailsService) {
         this.bearerTokenAuthFilter = bearerTokenAuthFilter;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     @Bean
@@ -54,7 +57,7 @@ public class SecurityConfiguration {
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-        config.setAllowCredentials(true); // Erlaubt das Senden von Cookies/Auth-Headern
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -68,10 +71,10 @@ public class SecurityConfiguration {
 
     @Bean
     public AuthenticationManager authenticationManager(
-            UserDetailsService userDetailsService,
+            CustomUserDetailsService customUserDetailsService,
             PasswordEncoder passwordEncoder) {
 
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userDetailsService);
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(customUserDetailsService);
         authenticationProvider.setPasswordEncoder(passwordEncoder);
 
         return new ProviderManager(authenticationProvider);
