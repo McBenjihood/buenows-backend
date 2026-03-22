@@ -9,6 +9,7 @@ import com.buenws.buenws_backend.API.Exception.Custom.ParseTokenException;
 import com.buenws.buenws_backend.API.Records.UserRecords;
 import com.buenws.buenws_backend.API.Repository.UserRepository;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
+import com.buenws.buenws_backend.Util.FileUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,6 +19,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +39,15 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
+    }
+
+    public UserEntity getUserEntityFromToken(String token){
+        Optional<UserEntity> userEntity = tokenService.validateJWTToken(token);
+        if(userEntity.isPresent()){
+            return userEntity.get();
+        }else {
+            throw new InvalidUserException("User not found.", "INVALID_USER");
+        }
     }
 
     //Register Logic

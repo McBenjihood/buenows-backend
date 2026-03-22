@@ -9,10 +9,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 
-import java.io.File;
+
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -58,7 +60,7 @@ class BuenowsBackendApplicationTests {
 		);
 
 		//Act
-		UserRecords.ApiResponse<Void> response = fileService.handleFileUpload(file, UPLOAD_DIR,"");
+		UserRecords.ApiResponse<Void> response = fileService.handleFileUpload(file,"");
 
 		//Assert
 		assertTrue(response.message().contains("uploaded"));
@@ -70,10 +72,10 @@ class BuenowsBackendApplicationTests {
 		String directoryPath = "src/main/resources/static/images/" + "019c768d-78b0-76f3-85b4-83a7cf57e9e5";
 
 		//Act
-		File[] files = fileService.listDirContent(directoryPath);
+		List<String> images = fileService.listDirContent(directoryPath);
 
 		//Assert
-		assertNotNull(files);
+		assertNotNull(images);
 
 	}
 }

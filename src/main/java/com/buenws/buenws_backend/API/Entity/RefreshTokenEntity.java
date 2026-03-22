@@ -24,12 +24,13 @@ public class RefreshTokenEntity {
     }
 
     //Columns
+    @Column(name = "token")
+    private String token;
+
     @Id
     @Column(name = "user_id")
     private UUID id;
 
-    @Column(name = "token")
-    private String token;
 
     @Column(name = "edited_at")
     private Instant edited_at;

@@ -1,5 +1,7 @@
 package com.buenws.buenws_backend.API.Records;
 
+import java.lang.reflect.Array;
+
 public class UserRecords
 {
     //Generic Response
@@ -50,4 +52,14 @@ public class UserRecords
     public record RefreshTokenRequestRecord(
             String refresh_token
     ){}
+    public record getImageListRequestRecord(
+            Array[] Images
+    ){}
+
+    //Special
+    public record Image(){
+
+    }
 }
+
+

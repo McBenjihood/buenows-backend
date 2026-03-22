@@ -19,7 +19,6 @@ public class UserEntity {
         this.email = email;
     }
 
-
     //Columns
     @Id
     @GeneratedValue(generator = "UUID")
@@ -39,6 +38,10 @@ public class UserEntity {
 
     @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private RefreshTokenEntity refreshTokenEntity;
+
+
+    //@OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    //private
 
 
     // Getters / Setters

@@ -2,6 +2,7 @@ package com.buenws.buenws_backend.API.Controller;
 
 import com.buenws.buenws_backend.API.Records.UserRecords;
 import com.buenws.buenws_backend.API.Service.FileService;
+import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,16 +12,24 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/files")
 public class FileController {
 
-    private FileService fileservice;
-
-    private static final String UPLOAD_DIR = "uploads/";
-
-    public FileController(FileService fileservice) {
+    public FileController(FileService fileservice, TokenService tokenService) {
         this.fileservice = fileservice;
+        this.tokenService = tokenService;
     }
+
+    private final FileService fileservice;
+    private final TokenService tokenService;
+
 
     @PostMapping("upload")
     ResponseEntity<UserRecords.ApiResponse<Void>> handleFileUpload(@RequestParam("file")MultipartFile file, @RequestHeader("Authorization") String authHeader){
-        return ResponseEntity.ok(fileservice.handleFileUpload(file, UPLOAD_DIR, authHeader));
+        return ResponseEntity.ok(fileservice.handleFileUpload(file, tokenService.parseTokenFromHeader(authHeader)));
     }
+
+    /*
+    @GetMapping("get-files")
+    ResponseEntity<UserRecords.ApiResponse<Void>> getImageList(@RequestHeader("Authorization") String authHeader){
+        return ResponseEntity.ok(fileservice.);
+    }
+     */
 }

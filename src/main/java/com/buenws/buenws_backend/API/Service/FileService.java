@@ -2,7 +2,6 @@ package com.buenws.buenws_backend.API.Service;
 
 import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidFileOperation;
-import com.buenws.buenws_backend.API.Exception.Custom.InvalidUserException;
 import com.buenws.buenws_backend.API.Records.UserRecords;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.Util.FileUtil;
@@ -14,39 +13,40 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class FileService {
 
-    TokenService tokenService;
+    private final TokenService tokenService;
+    private final UserService userService;
+    private final String UPLOAD_DIR = "src/main/resources/static/images/";
 
-    public FileService(TokenService tokenService) {
+
+    public FileService(UserService userService, TokenService tokenService) {
+        this.userService = userService;
         this.tokenService = tokenService;
     }
 
-    public File[] listDirContent(String directoryPath){
+    public List<String> listDirContent(String directoryPath) {
         File directory = new File(directoryPath);
-
         File[] files = directory.listFiles();
 
-        if (files != null){
-            for (File file : files){
-                System.out.println(file.getName());
-            }
+        if (files == null) {
+            return Collections.emptyList();
         }
 
-        return files;
+        return Arrays.stream(files)
+                .map(File::getName)
+                .collect(Collectors.toList());
     }
 
-    public UserRecords.ApiResponse<Void> handleFileUpload (MultipartFile file, String UPLOAD_DIR, String authHeader){
+    public UserRecords.ApiResponse<Void> handleFileUpload (MultipartFile file, String token){
         try{
-            Optional<UserEntity> userEntity = tokenService.validateJWTToken(tokenService.parseTokenFromHeader(authHeader));
-
-            if(userEntity.isPresent()){
-
-                UserEntity user = userEntity.get();
-
+                UserEntity user = userService.getUserEntityFromToken(token);
                 Path uploadPath = Paths.get(UPLOAD_DIR + user.getId().toString() + "/");
 
                 if (!Files.exists(uploadPath)) {
@@ -57,11 +57,17 @@ public class FileService {
                 file.transferTo(filePath);
 
                 return UserRecords.ApiResponse.success("File uploaded: " + filePath.getFileName());
-            }else {
-                throw new InvalidUserException("This user is not permitted to take this action.", "INVALID_USER");
-            }
         } catch (IOException e) {
             throw new InvalidFileOperation("File Upload failed. Try renaming the file.","INVALID_FILE_UPLOAD", e);
+        }
+    }
+
+    public UserRecords.ApiResponse<Void> getImageList(String token){
+        try {
+            UserEntity user = userService.getUserEntityFromToken(token);
+            List<String> images = listDirContent(UPLOAD_DIR + user.getId().toString());
+
+
         }
     }
 }
