@@ -1,7 +1,7 @@
 package com.buenws.buenws_backend.API.Controller;
 
 import com.buenws.buenws_backend.API.Records.UserRecords;
-import com.buenws.buenws_backend.API.Service.FileService;
+import com.buenws.buenws_backend.API.Service.UserAssetService;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,12 +12,12 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/files")
 public class FileController {
 
-    public FileController(FileService fileservice, TokenService tokenService) {
+    public FileController(UserAssetService fileservice, TokenService tokenService) {
         this.fileservice = fileservice;
         this.tokenService = tokenService;
     }
 
-    private final FileService fileservice;
+    private final UserAssetService fileservice;
     private final TokenService tokenService;
 
 

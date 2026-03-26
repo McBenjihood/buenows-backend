@@ -3,7 +3,7 @@ package com.buenws.buenws_backend;
 import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Records.UserRecords;
 import com.buenws.buenws_backend.API.Repository.UserRepository;
-import com.buenws.buenws_backend.API.Service.FileService;
+import com.buenws.buenws_backend.API.Service.UserAssetService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,7 +24,7 @@ class BuenowsBackendApplicationTests {
 
 	//Arrange
 	@Autowired
-	FileService fileService;
+	UserAssetService userAssetService;
 	@Autowired
 	UserRepository userRepository;
 
@@ -60,7 +60,7 @@ class BuenowsBackendApplicationTests {
 		);
 
 		//Act
-		UserRecords.ApiResponse<Void> response = fileService.handleFileUpload(file,"");
+		UserRecords.ApiResponse<Void> response = userAssetService.handleFileUpload(file,"");
 
 		//Assert
 		assertTrue(response.message().contains("uploaded"));
@@ -72,7 +72,7 @@ class BuenowsBackendApplicationTests {
 		String directoryPath = "src/main/resources/static/images/" + "019c768d-78b0-76f3-85b4-83a7cf57e9e5";
 
 		//Act
-		List<String> images = fileService.listDirContent(directoryPath);
+		List<String> images = userAssetService.listDirContent(directoryPath);
 
 		//Assert
 		assertNotNull(images);

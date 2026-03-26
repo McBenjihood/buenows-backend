@@ -9,7 +9,6 @@ import com.buenws.buenws_backend.API.Exception.Custom.ParseTokenException;
 import com.buenws.buenws_backend.API.Records.UserRecords;
 import com.buenws.buenws_backend.API.Repository.UserRepository;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
-import com.buenws.buenws_backend.Util.FileUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,9 +18,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
@@ -49,39 +45,60 @@ public class UserService {
             throw new InvalidUserException("User not found.", "INVALID_USER");
         }
     }
+    public UserEntity getUserEntityFromEmail(String email){
+        Optional<UserEntity> userEntity = userRepository.findByEmail(email);
+        if(userEntity.isPresent()){
+            return userEntity.get();
+        }else {
+            throw new InvalidUserException("User not found.", "INVALID_USER");
+        }
+    }
 
     //Register Logic
     @Transactional
-    public UserRecords.ApiResponse<Void> registerUser(UserRecords.CredentialsSubmitRequestRecord registerRequestRecord) {
-        UserEntity userEntity = new UserEntity();
+    public UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord> RegisterUserWithCredentials(UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
+        UserEntity user = new UserEntity();
 
-        userEntity.setAuthorities(List.of("ROLE_USER"));
-        userEntity.setEmail(registerRequestRecord.email());
-        userEntity.setPassword(passwordEncoder.encode(registerRequestRecord.password()));
-        userEntity.setRefreshTokenEntity(
+        user.setAuthorities(List.of("ROLE_USER"));
+        user.setEmail(credentialsSubmitRequestRecord.email());
+        user.setPassword(passwordEncoder.encode(credentialsSubmitRequestRecord.password()));
+        user.setRefreshTokenEntity(
                 new RefreshTokenEntity(
                         tokenService.generateRefreshToken(),
                         TimeUtil.getCurrentDate(),
                         TimeUtil.getWeekFromNow(),
-                        userEntity
+                        user
                 ));
 
         try {
-            userRepository.save(userEntity);
+            userRepository.save(user);
         } catch (Exception e) {
             if (e.getMessage().toUpperCase().contains("DUPLICATE KEY VALUE")){
-                throw new DuplicateUserException("User with Email: '" + registerRequestRecord.email() + "' already exists", "DUPLICATE_USER");
+                throw new DuplicateUserException("User with Email: '" + credentialsSubmitRequestRecord.email() + "' already exists", "DUPLICATE_USER");
             }else {
-                throw new InvalidUserException("Could not create user: " + registerRequestRecord.email(), "INVALID_USER");
+                throw new InvalidUserException("Could not create user: " + credentialsSubmitRequestRecord.email(), "INVALID_USER");
             }
         }
 
-        return UserRecords.ApiResponse.success("User with Email: '" + registerRequestRecord.email() + "' registered successfully");
+        String JWT;
+        try{
+            JWT = tokenService.generateJWTToken(user);
+        } catch (JOSEException e){
+            throw new GenerateTokenException("Error login User in. Please try again.", "GENERATE_TOKEN_ERROR");
+        }
+
+        return UserRecords.ApiResponse.success(
+                "User with Email: '" + credentialsSubmitRequestRecord.email() + "' registered successfully",
+                new UserRecords.SuccessfulAuthResponseRecord(
+                        JWT,
+                        user.getEmail()
+                )
+        );
     }
 
     //Login Logic
     @Transactional
-    public UserRecords.ApiResponse<UserRecords.LoginResponseRecord> loginUser(UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
+    public UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord> LoginUserWithCredentials(UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
 
             Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
                     credentialsSubmitRequestRecord.email(),
@@ -89,39 +106,33 @@ public class UserService {
             );
             authenticationManager.authenticate(authenticationRequest);
 
-            Optional<UserEntity> user = userRepository.findByEmail(credentialsSubmitRequestRecord.email());
-            if (user.isPresent()){
-                UserEntity userEntity = user.get();
+            UserEntity user = getUserEntityFromEmail(credentialsSubmitRequestRecord.email());
 
-                String JWTToken;
-                try{
-                    JWTToken = tokenService.generateJWTToken(userEntity);
-                } catch (JOSEException e){
-                    throw new GenerateTokenException("Error login User in. Please try again.", "GENERATE_TOKEN_ERROR");
-                }
+            String JWTToken;
+            try{
+                JWTToken = tokenService.generateJWTToken(user);
+            } catch (JOSEException e){
+                throw new GenerateTokenException("Error login User in. Please try again.", "GENERATE_TOKEN_ERROR");
+            }
 
-                String RefreshToken = tokenService.generateRefreshToken();
+            String RefreshToken = tokenService.generateRefreshToken();
 
-                userEntity.getRefreshTokenEntity().setToken(RefreshToken);
-                userRepository.save(userEntity);
+            user.getRefreshTokenEntity().setToken(RefreshToken);
+            userRepository.save(user);
 
                 return UserRecords.ApiResponse.success(
                         "Log in was successful.",
-                        new UserRecords.LoginResponseRecord(
+                        new UserRecords.SuccessfulAuthResponseRecord(
                                 JWTToken,
-                                RefreshToken,
-                                userEntity.getEmail()
+                                RefreshToken
                         )
                 );
-            }
-            else {
-                throw new InvalidUserException("User with these Credentials could not be found.", "INVALID_USER");
-            }
+
     }
 
     //RefreshToken Logic
     @Transactional
-    public UserRecords.ApiResponse<UserRecords.RefreshTokenResponseRecord> refreshToken (UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
+    public UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord> RefreshTokens (UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
 
         RefreshTokenEntity refreshTokenEntity;
         String JWTToken;
@@ -145,7 +156,7 @@ public class UserService {
 
         return UserRecords.ApiResponse.success(
                 "Tokens generated successfully.",
-                new UserRecords.RefreshTokenResponseRecord(
+                new UserRecords.SuccessfulAuthResponseRecord(
                         JWTToken,
                         RefreshToken
                 )

@@ -16,9 +16,9 @@ public class RefreshTokenEntity {
         this.userEntity = userEntity;
         this.token = token;
     }
-    public RefreshTokenEntity(String token, Instant edited_at, Instant expires_at, UserEntity userEntity) {
+    public RefreshTokenEntity(String token, Instant created_at, Instant expires_at, UserEntity userEntity) {
         this.token = token;
-        this.edited_at = edited_at;
+        this.created_at = created_at;
         this.expires_at = expires_at;
         this.userEntity = userEntity;
     }
@@ -31,9 +31,8 @@ public class RefreshTokenEntity {
     @Column(name = "user_id")
     private UUID id;
 
-
-    @Column(name = "edited_at")
-    private Instant edited_at;
+    @Column(name = "created_at")
+    private Instant created_at;
 
     @Column(name = "expires_at")
     private Instant expires_at;
@@ -56,10 +55,10 @@ public class RefreshTokenEntity {
     }
 
     public Instant getEdited_at() {
-        return edited_at;
+        return created_at;
     }
-    public void setEdited_at(Instant edited_at) {
-        this.edited_at = edited_at;
+    public void setEdited_at(Instant created_at) {
+        this.created_at = created_at;
     }
 
     public Instant getExpires_at() {
