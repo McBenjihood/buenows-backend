@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.AuthenticationException;
 
 import java.text.ParseException;
 import java.util.List;
@@ -98,36 +99,42 @@ public class UserService {
 
     //Login Logic
     @Transactional
-    public UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord> LoginUserWithCredentials(UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
+    public UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord> LoginUserWithCredentials(
+            UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord) {
 
+        try {
             Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
                     credentialsSubmitRequestRecord.email(),
                     credentialsSubmitRequestRecord.password()
             );
+
             authenticationManager.authenticate(authenticationRequest);
 
             UserEntity user = getUserEntityFromEmail(credentialsSubmitRequestRecord.email());
 
             String JWTToken;
-            try{
+            try {
                 JWTToken = tokenService.generateJWTToken(user);
-            } catch (JOSEException e){
+            } catch (JOSEException e) {
                 throw new GenerateTokenException("Error login User in. Please try again.", "GENERATE_TOKEN_ERROR");
             }
 
-            String RefreshToken = tokenService.generateRefreshToken();
+            String refreshToken = tokenService.generateRefreshToken();
 
-            user.getRefreshTokenEntity().setToken(RefreshToken);
+            user.getRefreshTokenEntity().setToken(refreshToken);
             userRepository.save(user);
 
-                return UserRecords.ApiResponse.success(
-                        "Log in was successful.",
-                        new UserRecords.SuccessfulAuthResponseRecord(
-                                JWTToken,
-                                RefreshToken
-                        )
-                );
+            return UserRecords.ApiResponse.success(
+                    "Log in was successful.",
+                    new UserRecords.SuccessfulAuthResponseRecord(
+                            JWTToken,
+                            refreshToken
+                    )
+            );
 
+        } catch (AuthenticationException e) {
+            throw new InvalidUserException("Invalid email or password.", "INVALID_CREDENTIALS");
+        }
     }
 
     //RefreshToken Logic

@@ -15,7 +15,9 @@ public class GlobalExceptionHandler {
             ParseTokenException.class,
             InvalidRefreshTokenException.class,
             ExpiredTokenException.class,
-            DuplicateUserException.class
+            DuplicateUserException.class,
+            InvalidUserException.class,
+            GenerateTokenException.class
     })
     public ResponseEntity<UserRecords.ApiResponse<UserRecords.ErrorResponseRecord>> handleException(CustomBaseException ex) {
         return ResponseEntity
@@ -24,7 +26,7 @@ public class GlobalExceptionHandler {
                         UserRecords.ApiResponse.error(
                                 ex.getMessage(),
                                 new UserRecords.ErrorResponseRecord(
-                                    ex.getErrorCode()
+                                        ex.getErrorCode()
                                 )
                         )
                 );
