@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InquiryService {
 
-    private InquiryRepository inquiryRepository;
+    private final InquiryRepository inquiryRepository;
 
     public InquiryService(InquiryRepository inquiryRepository) {
         this.inquiryRepository = inquiryRepository;
