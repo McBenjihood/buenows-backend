@@ -25,7 +25,6 @@ public class FileService {
     private final UserService userService;
     private final String UPLOAD_DIR = "src/main/resources/static/images/";
 
-
     public FileService(UserService userService, TokenService tokenService) {
         this.userService = userService;
         this.tokenService = tokenService;
@@ -44,30 +43,40 @@ public class FileService {
                 .collect(Collectors.toList());
     }
 
-    public UserRecords.ApiResponse<Void> handleFileUpload (MultipartFile file, String token){
-        try{
-                UserEntity user = userService.getUserEntityFromToken(token);
-                Path uploadPath = Paths.get(UPLOAD_DIR + user.getId().toString() + "/");
+    public UserRecords.ApiResponse<Void> handleFileUpload(MultipartFile file, String token) {
+        try {
+            UserEntity user = userService.getUserEntityFromToken(token);
+            Path uploadPath = Paths.get(UPLOAD_DIR + user.getId() + "/");
 
-                if (!Files.exists(uploadPath)) {
-                    Files.createDirectories(uploadPath);
-                }
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
 
-                Path filePath = uploadPath.resolve(FileUtil.getFilePrefix() +"_image.jpg");
-                file.transferTo(filePath);
+            Path filePath = uploadPath.resolve(FileUtil.getFilePrefix() + "_image.jpg");
+            file.transferTo(filePath);
 
-                return UserRecords.ApiResponse.success("File uploaded: " + filePath.getFileName());
+            return UserRecords.ApiResponse.success("File uploaded: " + filePath.getFileName());
         } catch (IOException e) {
-            throw new InvalidFileOperation("File Upload failed. Try renaming the file.","INVALID_FILE_UPLOAD", e);
+            throw new InvalidFileOperation(
+                    "File upload failed. Try renaming the file.",
+                    "INVALID_FILE_UPLOAD",
+                    e
+            );
         }
     }
 
-    public UserRecords.ApiResponse<Void> getImageList(String token){
+    public UserRecords.ApiResponse<List<String>> getImageList(String token) {
         try {
             UserEntity user = userService.getUserEntityFromToken(token);
-            List<String> images = listDirContent(UPLOAD_DIR + user.getId().toString());
+            List<String> images = listDirContent(UPLOAD_DIR + user.getId());
 
-
+            return UserRecords.ApiResponse.success("Images loaded successfully.", images);
+        } catch (Exception e) {
+            throw new InvalidFileOperation(
+                    "Could not load image list.",
+                    "INVALID_FILE_LIST",
+                    e
+            );
         }
     }
 }

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/inquiry")
 public class InquiryController {
-    private InquiryService inquiryService;
+    private final InquiryService inquiryService;
 
     public InquiryController(InquiryService inquiryService) {
         this.inquiryService = inquiryService;
