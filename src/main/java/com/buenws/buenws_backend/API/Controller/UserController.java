@@ -22,17 +22,17 @@ public class UserController {
     }
 
     @PostMapping("auth/register")
-    public ResponseEntity<UserRecords.ApiResponse<Void>> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
-        return ResponseEntity.ok(userService.registerUser(credentialsSubmitRequestRecord));
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord>> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
+        return ResponseEntity.ok(userService.RegisterUserWithCredentials(credentialsSubmitRequestRecord));
     }
 
     @PostMapping("auth/login")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.LoginResponseRecord>> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
-        return ResponseEntity.ok(userService.loginUser(credentialsSubmitRequestRecord));
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord>> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
+        return ResponseEntity.ok(userService.LoginUserWithCredentials(credentialsSubmitRequestRecord));
     }
 
     @PostMapping("auth/refresh")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.RefreshTokenResponseRecord>> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
-        return ResponseEntity.ok(userService.refreshToken(refreshTokenRequestRecord));
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord>> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
+        return ResponseEntity.ok(userService.RefreshTokens(refreshTokenRequestRecord));
     }
 }

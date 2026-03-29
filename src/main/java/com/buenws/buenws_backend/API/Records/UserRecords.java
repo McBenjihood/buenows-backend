@@ -25,14 +25,9 @@ public class UserRecords
     }
 
     //Specific Responses
-    public record LoginResponseRecord(
-            String JWTToken,
-            String refreshToken,
-            String email
-    ){}
-    public record RefreshTokenResponseRecord(
-            String JWTToken,
-            String refreshToken
+    public record SuccessfulAuthResponseRecord(
+            String JWT,
+            String RefreshToken
     ){}
     public record ErrorResponseRecord(
             String errorCode
@@ -52,14 +47,15 @@ public class UserRecords
     public record RefreshTokenRequestRecord(
             String refresh_token
     ){}
-    public record getImageListRequestRecord(
-            Array[] Images
-    ){}
 
-    //Special
+
+    //Image Stuff (Not ready yet.)
     public record Image(){
 
     }
+    public record getImageListRequestRecord(
+            Array[] Images
+    ){}
 }
 
 

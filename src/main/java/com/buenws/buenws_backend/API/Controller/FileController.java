@@ -1,7 +1,7 @@
 package com.buenws.buenws_backend.API.Controller;
 
 import com.buenws.buenws_backend.API.Records.UserRecords;
-import com.buenws.buenws_backend.API.Service.FileService;
+import com.buenws.buenws_backend.API.Service.UserAssetService;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,11 +13,11 @@ import java.util.List;
 @RequestMapping("/api/files")
 public class FileController {
 
-    private final FileService fileService;
+    private final UserAssetService userAssetService;
     private final TokenService tokenService;
 
-    public FileController(FileService fileService, TokenService tokenService) {
-        this.fileService = fileService;
+    public FileController(UserAssetService userAssetService, TokenService tokenService) {
+        this.userAssetService = userAssetService;
         this.tokenService = tokenService;
     }
 
@@ -27,7 +27,7 @@ public class FileController {
             @RequestHeader("Authorization") String authHeader
     ) {
         String token = tokenService.parseTokenFromHeader(authHeader);
-        return ResponseEntity.ok(fileService.handleFileUpload(file, token));
+        return ResponseEntity.ok(userAssetService.handleFileUpload(file, token));
     }
 
     @GetMapping("/get-files")
@@ -35,6 +35,6 @@ public class FileController {
             @RequestHeader("Authorization") String authHeader
     ) {
         String token = tokenService.parseTokenFromHeader(authHeader);
-        return ResponseEntity.ok(fileService.getImageList(token));
+        return ResponseEntity.ok(userAssetService.getImageList(token));
     }
 }
