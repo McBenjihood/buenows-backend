@@ -7,19 +7,18 @@ import com.buenws.buenws_backend.API.Records.UserRecords;
 import com.buenws.buenws_backend.API.Repository.UserAssetsRepository;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.Util.FileUtil;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class UserAssetService {
@@ -36,25 +35,72 @@ public class UserAssetService {
         this.userAssetsRepository = userAssetsRepository;
     }
 
-    public UserRecords.ApiResponse<Void> AddAssetToUser (MultipartFile file, String token){
-        try{
-        UserEntity user = userService.getUserEntityFromToken(token);
-        Path uploadPath = Paths.get(UPLOAD_DIR + user.getId().toString() + "/");
+    @Transactional
+    public UserRecords.ApiResponse<UserRecords.UploadFileResponseRecord> handleImageUpload(MultipartFile file, String Token) {
+        try {
+            UserEntity user = userService.getUserEntityFromToken(Token);
+            Path uploadPath = Paths.get(UPLOAD_DIR + user.getId() + "/");
 
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
-        }
+            //creating a directory to store images
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
 
-        Path filePath = uploadPath.resolve(FileUtil.getFilePrefix() +"_image.jpg");
-        file.transferTo(filePath);
+            String FilePrefix = FileUtil.getFilePrefix();
 
-        Long maxSeq = userAssetsRepository.findMaxAssetIdByUserId(user.getId());
-        Long nextSeq = (maxSeq == null) ? 1 : maxSeq + 1;
+            Path FileDirectory = Paths.get(uploadPath + "/"+ FilePrefix);
+            Path TempFilePath = Paths.get(uploadPath + "/"+ FilePrefix + "_image.tmp");
 
-        return UserRecords.ApiResponse.success("File uploaded: " + filePath.getFileName());
+            //writing temporary file to drive
+            file.transferTo(TempFilePath);
+
+            //Setting IO for ImageIO.write()
+            BufferedImage InputImage = ImageIO.read(new File(TempFilePath.toString()));
+            File OutputFile = new File(FileDirectory + "_image.png");
+
+            //Converting image into png file
+            if(!ImageIO.write(InputImage, "png" , OutputFile)){
+                throw new IOException();
+            }
+
+            //Delete tmp file after successful conversion
+            Files.delete(TempFilePath);
+
+            Long maxSeq =userAssetsRepository.findMaxAssetIdByUserId(user.getId());
+            Long nextSeq = (maxSeq == null) ? 1 : maxSeq + 1;
+
+            UserAssetEntity userAssetEntity = new UserAssetEntity(nextSeq, "image", "http://localhost:8080/images/" + user.getId() + "/"+ FilePrefix + "_image.png", OutputFile.getPath(), user);
+            userAssetsRepository.save(userAssetEntity);
+
+            return UserRecords.ApiResponse.success(
+                    "File uploaded: " + file.getOriginalFilename(),
+                    new UserRecords.UploadFileResponseRecord(
+                            userAssetEntity.getAssetId(),
+                            userAssetEntity.getType(),
+                            userAssetEntity.getUrl()
+                    )
+            );
         } catch (IOException e) {
-            throw new InvalidFileOperation("File Upload failed. Try renaming the file.","INVALID_FILE_UPLOAD", e);
+            throw new InvalidFileOperation(
+                    "File upload failed. Make sure its a supported format.",
+                    "INVALID_FILE_UPLOAD",
+                    e
+            );
         }
     }
 
+    public UserRecords.ApiResponse<List<String>> getImageList(String token) {
+        try {
+            UserEntity user = userService.getUserEntityFromToken(token);
+
+
+            return UserRecords.ApiResponse.success("Images loaded successfully.");
+        } catch (Exception e) {
+            throw new InvalidFileOperation(
+                    "Could not load image list.",
+                    "INVALID_FILE_LIST",
+                    e
+            );
+        }
+    }
 }

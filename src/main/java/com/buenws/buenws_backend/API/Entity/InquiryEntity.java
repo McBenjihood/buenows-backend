@@ -4,7 +4,7 @@ package com.buenws.buenws_backend.API.Entity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "inquiries")
@@ -26,7 +26,7 @@ public class InquiryEntity {
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    private OffsetDateTime created_at;
 
 
     //Getters and Setters
@@ -34,8 +34,8 @@ public class InquiryEntity {
         return id;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public OffsetDateTime getCreatedAt() {
+        return created_at;
     }
 
     public String getEmail() {
@@ -59,4 +59,7 @@ public class InquiryEntity {
         this.message = message;
     }
 
+    public OffsetDateTime getCreated_at() {
+        return created_at;
+    }
 }

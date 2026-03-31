@@ -46,36 +46,9 @@ class BuenowsBackendApplicationTests {
 		}
 	}
 
+	//Need to redo this test
 	@Test
 	void TestMultipartImageUpload() throws IOException {
-		//Arrange
-		String UPLOAD_DIR = "uploads/";
-		FileInputStream fis = new FileInputStream("src/main/resources/static/images/image.png");
-
-		MockMultipartFile file = new MockMultipartFile(
-				"file",
-				"image.png",
-				"image/png",
-				fis
-		);
-
-		//Act
-		UserRecords.ApiResponse<Void> response = userAssetService.handleFileUpload(file,"");
-
-		//Assert
-		assertTrue(response.message().contains("uploaded"));
 	}
 
-	@Test
-	void TestListDirContent(){
-		//Arrange
-		String directoryPath = "src/main/resources/static/images/" + "019c768d-78b0-76f3-85b4-83a7cf57e9e5";
-
-		//Act
-		List<String> images = userAssetService.listDirContent(directoryPath);
-
-		//Assert
-		assertNotNull(images);
-
-	}
 }

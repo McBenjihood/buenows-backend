@@ -1,7 +1,9 @@
 package com.buenws.buenws_backend.API.Entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,14 +38,18 @@ public class UserEntity {
     @Column(name = "password")
     private String password;
 
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private OffsetDateTime created_at;
+
     @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private RefreshTokenEntity refreshTokenEntity;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<UserAssetEntity> userAssets;
 
-    // Getters / Setters
 
+    // Getters / Setters
     public UUID getId() {
         return id;
     }
@@ -67,6 +73,12 @@ public class UserEntity {
     }
     public String getPassword(){return password;}
 
+    public OffsetDateTime getCreated_at() {
+        return created_at;
+    }
+
+
+    // Getters / Setters for Linked Tables
     public RefreshTokenEntity getRefreshTokenEntity() {
         return refreshTokenEntity;
     }

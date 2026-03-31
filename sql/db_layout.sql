@@ -40,6 +40,7 @@ CREATE TABLE user_assets (
                             type VARCHAR(20) NOT NULL,
                             url TEXT NOT NULL,
                             path TEXT NOT NULL,
+                            created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                             CONSTRAINT fk_user_assets_users FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 

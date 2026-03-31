@@ -1,7 +1,6 @@
 package com.buenws.buenws_backend.API.Repository;
 
 import com.buenws.buenws_backend.API.Entity.UserAssetEntity;
-import com.buenws.buenws_backend.API.Entity.UserEntity;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;

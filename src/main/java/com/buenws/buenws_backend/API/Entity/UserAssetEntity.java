@@ -1,13 +1,24 @@
 package com.buenws.buenws_backend.API.Entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
-import java.nio.file.Path;
-import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "user_assets")
 public class UserAssetEntity {
+
+    public UserAssetEntity() {
+
+    }
+    public UserAssetEntity(Long assetId, String type, String url, String path, UserEntity user) {
+        this.assetId = assetId;
+        this.type = type;
+        this.url = url;
+        this.path = path;
+        this.user = user;
+    }
 
     //Columns
     @Id
@@ -23,6 +34,10 @@ public class UserAssetEntity {
 
     @Column(name = "path", nullable = false, columnDefinition = "TEXT")
     private String path;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private OffsetDateTime created_at;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -53,6 +68,10 @@ public class UserAssetEntity {
     }
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public OffsetDateTime getCreated_at() {
+        return created_at;
     }
 
     public UserEntity getUser() {

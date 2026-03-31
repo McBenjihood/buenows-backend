@@ -1,8 +1,8 @@
 package com.buenws.buenws_backend.API.Controller;
 
 import com.buenws.buenws_backend.API.Records.UserRecords;
-import com.buenws.buenws_backend.API.Service.FileService;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
+import com.buenws.buenws_backend.API.Service.UserAssetService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,30 +11,28 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/files")
-public class FileController {
+public class UserAssetController {
 
-    private final FileService fileService;
+    private final UserAssetService userAssetService;
     private final TokenService tokenService;
 
-    public FileController(FileService fileService, TokenService tokenService) {
-        this.fileService = fileService;
+    public UserAssetController(UserAssetService userAssetService, TokenService tokenService) {
+        this.userAssetService = userAssetService;
         this.tokenService = tokenService;
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<UserRecords.ApiResponse<Void>> handleFileUpload(
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.UploadFileResponseRecord>> handleFileUpload(
             @RequestParam("file") MultipartFile file,
             @RequestHeader("Authorization") String authHeader
     ) {
-        String token = tokenService.parseTokenFromHeader(authHeader);
-        return ResponseEntity.ok(fileService.handleFileUpload(file, token));
+        return ResponseEntity.ok(userAssetService.handleImageUpload(file, authHeader));
     }
 
     @GetMapping("/get-files")
     public ResponseEntity<UserRecords.ApiResponse<List<String>>> getImageList(
             @RequestHeader("Authorization") String authHeader
     ) {
-        String token = tokenService.parseTokenFromHeader(authHeader);
-        return ResponseEntity.ok(fileService.getImageList(token));
+        return ResponseEntity.ok(userAssetService.getImageList(tokenService.parseTokenFromHeader(authHeader)));
     }
 }

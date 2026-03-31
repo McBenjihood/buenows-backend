@@ -17,7 +17,8 @@ public class GlobalExceptionHandler {
             ExpiredTokenException.class,
             DuplicateUserException.class,
             InvalidUserException.class,
-            GenerateTokenException.class
+            GenerateTokenException.class,
+            InvalidFileOperation.class
     })
     public ResponseEntity<UserRecords.ApiResponse<UserRecords.ErrorResponseRecord>> handleException(CustomBaseException ex) {
         return ResponseEntity
@@ -31,6 +32,5 @@ public class GlobalExceptionHandler {
                         )
                 );
     }
-
 }
 

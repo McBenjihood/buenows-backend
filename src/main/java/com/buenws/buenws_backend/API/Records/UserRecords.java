@@ -32,6 +32,11 @@ public class UserRecords
     public record ErrorResponseRecord(
             String errorCode
     ){}
+    public record UploadFileResponseRecord(
+            long asset_id,
+            String type,
+            String url
+    ){}
 
 
     //Requests
