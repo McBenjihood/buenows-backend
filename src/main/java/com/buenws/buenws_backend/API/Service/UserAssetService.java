@@ -66,10 +66,7 @@ public class UserAssetService {
             //Delete tmp file after successful conversion
             Files.delete(TempFilePath);
 
-            Long maxSeq =userAssetsRepository.findMaxAssetIdByUserId(user.getId());
-            Long nextSeq = (maxSeq == null) ? 1 : maxSeq + 1;
-
-            UserAssetEntity userAssetEntity = new UserAssetEntity(nextSeq, "image", "http://localhost:8080/images/" + user.getId() + "/"+ FilePrefix + "_image.png", OutputFile.getPath(), user);
+            UserAssetEntity userAssetEntity = new UserAssetEntity("image", "http://localhost:8080/images/" + user.getId() + "/"+ FilePrefix + "_image.png", OutputFile.getPath(), user);
             userAssetsRepository.save(userAssetEntity);
 
             return UserRecords.ApiResponse.success(

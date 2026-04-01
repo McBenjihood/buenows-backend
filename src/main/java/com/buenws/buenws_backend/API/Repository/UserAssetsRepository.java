@@ -12,8 +12,5 @@ import java.util.UUID;
 @Repository
 public interface UserAssetsRepository extends JpaRepository<UserAssetEntity, Long> {
 
-    @Query("SELECT MAX(a.assetId) FROM UserAssetEntity a WHERE a.user.id = :userId")
-    Long findMaxAssetIdByUserId(@Param("userId") UUID userId);
-
     Optional<UserAssetEntity> findByUserId(UUID userId);
 }

@@ -12,8 +12,7 @@ public class UserAssetEntity {
     public UserAssetEntity() {
 
     }
-    public UserAssetEntity(Long assetId, String type, String url, String path, UserEntity user) {
-        this.assetId = assetId;
+    public UserAssetEntity(String type, String url, String path, UserEntity user) {
         this.type = type;
         this.url = url;
         this.path = path;
