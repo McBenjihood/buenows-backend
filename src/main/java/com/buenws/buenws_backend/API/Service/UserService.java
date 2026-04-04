@@ -92,7 +92,7 @@ public class UserService {
                 "User with Email: '" + credentialsSubmitRequestRecord.email() + "' registered successfully",
                 new UserRecords.SuccessfulAuthResponseRecord(
                         JWT,
-                        user.getEmail()
+                        user.getRefreshTokenEntity().getToken()
                 )
         );
     }
