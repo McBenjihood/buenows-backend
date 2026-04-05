@@ -1,7 +1,6 @@
 package com.buenws.buenws_backend.API.Configuration;
 
 
-import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.ExpiredTokenException;
 import com.buenws.buenws_backend.API.Exception.Custom.ParseTokenException;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
@@ -19,7 +18,6 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class BearerTokenAuthFilter extends OncePerRequestFilter {
@@ -38,20 +36,34 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
         String accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
 
         //Check if accessToken is valid
-        if (!accessToken.isEmpty()){
+        if (accessToken != null && !accessToken.isBlank()){
             try {
-                Optional<UserEntity> userEntity = tokenService.validateJWTToken(accessToken);
-                if(userEntity.isEmpty()){
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                }else {
-                    UserEntity user = userEntity.get();
-                    List<SimpleGrantedAuthority> authorities = user.getAuthorities().stream().map(SimpleGrantedAuthority::new).toList();
-                    Authentication authenticationToken = new UsernamePasswordAuthenticationToken(user.getEmail(),null, authorities);
-                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                com.nimbusds.jwt.JWTClaimsSet claimsSet = tokenService.validateJWTToken(accessToken);
+                String email = claimsSet.getSubject();
+                List<String> roles = claimsSet.getStringListClaim("roles");
+                if (roles == null) {
+                    roles = List.of();
                 }
-            }catch (ParseTokenException | ExpiredTokenException e) {
-                handlerExceptionResolver.resolveException(request, response, null, e);
-                return;
+
+                List<SimpleGrantedAuthority> authorities = roles.stream()
+                        .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+                        .map(SimpleGrantedAuthority::new)
+                        .toList();
+                Authentication authenticationToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
+                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                
+            } catch (Exception e) {
+                // Return 401 and stop the filter chain immediately
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                
+                if (e instanceof ParseTokenException || e instanceof ExpiredTokenException) {
+                    handlerExceptionResolver.resolveException(request, response, null, e);
+                } else if (e instanceof java.text.ParseException) {
+                    handlerExceptionResolver.resolveException(request, response, null, new ParseTokenException("Please Log in again.", "INVALID_TOKEN", e));
+                } else {
+                    handlerExceptionResolver.resolveException(request, response, null, e);
+                }
+                return; // DO NOT call doFilter
             }
         }
         filterChain.doFilter(request, response);
