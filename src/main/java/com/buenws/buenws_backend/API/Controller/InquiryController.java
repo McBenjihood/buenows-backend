@@ -19,7 +19,7 @@ public class InquiryController {
 
     //Contact Form Submission
     @PostMapping("/contact-submissions")
-    public ResponseEntity<UserRecords.ApiResponse<Void>> submitContactForm(@RequestBody UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
-        return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequestRecord));
+    public ResponseEntity<UserRecords.ApiResponse<Void>> submitContactForm(@RequestBody UserRecords.FormSubmissionRequest formSubmissionRequest) {
+        return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequest));
     }
 }

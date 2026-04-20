@@ -17,13 +17,13 @@ public class InquiryService {
     }
 
     @Transactional
-    public UserRecords.ApiResponse<Void> submitContactForm(UserRecords.FormSubmissionRequestRecord formSubmissionRequestRecord) {
+    public UserRecords.ApiResponse<Void> submitContactForm(UserRecords.FormSubmissionRequest formSubmissionRequest) {
         try {
             InquiryEntity inquiry = new InquiryEntity();
 
-            inquiry.setEmail(formSubmissionRequestRecord.email());
-            inquiry.setTitle(formSubmissionRequestRecord.title());
-            inquiry.setMessage(formSubmissionRequestRecord.message());
+            inquiry.setEmail(formSubmissionRequest.email());
+            inquiry.setTitle(formSubmissionRequest.title());
+            inquiry.setMessage(formSubmissionRequest.message());
 
             inquiryRepository.save(inquiry);
             return UserRecords.ApiResponse.success("Contact Form was submitted.");

@@ -22,7 +22,7 @@ public class UserAssetController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.UploadFileResponseRecord>> handleFileUpload(
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.UploadFileResponse>> handleFileUpload(
             @RequestParam("file") MultipartFile file,
             @RequestHeader("Authorization") String authHeader
     ) {

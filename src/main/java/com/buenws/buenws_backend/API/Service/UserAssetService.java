@@ -36,7 +36,7 @@ public class UserAssetService {
     }
 
     @Transactional
-    public UserRecords.ApiResponse<UserRecords.UploadFileResponseRecord> handleImageUpload(MultipartFile file, String Token) {
+    public UserRecords.ApiResponse<UserRecords.UploadFileResponse> handleImageUpload(MultipartFile file, String Token) {
         try {
             UserEntity user = userService.getUserEntityFromToken(Token);
             Path uploadPath = Paths.get(UPLOAD_DIR + user.getId() + "/");
@@ -71,7 +71,7 @@ public class UserAssetService {
 
             return UserRecords.ApiResponse.success(
                     "File uploaded: " + file.getOriginalFilename(),
-                    new UserRecords.UploadFileResponseRecord(
+                    new UserRecords.UploadFileResponse(
                             userAssetEntity.getAssetId(),
                             userAssetEntity.getType(),
                             userAssetEntity.getUrl()

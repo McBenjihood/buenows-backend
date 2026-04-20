@@ -29,7 +29,7 @@ public class RefreshTokenEntity {
 
     @Id
     @Column(name = "user_id")
-    private UUID id;
+    private UUID user_id;
 
     @Column(name = "created_at")
     private Instant created_at;
@@ -44,7 +44,7 @@ public class RefreshTokenEntity {
 
     // Getters / Setters
     public UUID getId() {
-        return id;
+        return user_id;
     }
 
     public String getToken() {

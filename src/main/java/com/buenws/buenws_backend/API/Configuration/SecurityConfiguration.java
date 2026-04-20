@@ -42,6 +42,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/user/auth/login").permitAll()
                         .requestMatchers("/api/user/auth/refresh").permitAll()
                         .requestMatchers("/images/**").permitAll()
+                        .requestMatchers("/api/user/reset-password").permitAll()
                         .requestMatchers("/api/user/auth").authenticated()
                         .anyRequest().authenticated()
                 )

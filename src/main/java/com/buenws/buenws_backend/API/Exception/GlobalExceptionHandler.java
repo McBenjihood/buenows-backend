@@ -20,13 +20,13 @@ public class GlobalExceptionHandler {
             GenerateTokenException.class,
             InvalidFileOperation.class
     })
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.ErrorResponseRecord>> handleException(CustomBaseException ex) {
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.ErrorResponse>> handleException(CustomBaseException ex) {
         return ResponseEntity
                 .badRequest()
                 .body(
                         UserRecords.ApiResponse.error(
                                 ex.getMessage(),
-                                new UserRecords.ErrorResponseRecord(
+                                new UserRecords.ErrorResponse(
                                         ex.getErrorCode()
                                 )
                         )

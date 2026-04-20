@@ -25,14 +25,14 @@ public class UserRecords
     }
 
     //Specific Responses
-    public record SuccessfulAuthResponseRecord(
+    public record SuccessfulAuthResponse(
             String JWT,
             String RefreshToken
     ){}
-    public record ErrorResponseRecord(
+    public record ErrorResponse(
             String errorCode
     ){}
-    public record UploadFileResponseRecord(
+    public record UploadFileResponse(
             long asset_id,
             String type,
             String url
@@ -40,25 +40,28 @@ public class UserRecords
 
 
     //Requests
-    public record FormSubmissionRequestRecord(
+    public record FormSubmissionRequest(
             String email,
             String title,
             String message
     ){}
-    public record CredentialsSubmitRequestRecord(
+    public record CredentialsSubmitRequest(
             String email,
             String password
     ){}
-    public record RefreshTokenRequestRecord(
+    public record RefreshTokenRequest(
             String refresh_token
+    ){}
+    public record ResetPasswordRequest(
+            String email
     ){}
 
 
     //Image Stuff (Not ready yet.)
-    public record Image(){
-
-    }
-    public record getImageListRequestRecord(
+    public record Image(
+            
+    ){}
+    public record getImageListRequest(
             Array[] Images
     ){}
 }

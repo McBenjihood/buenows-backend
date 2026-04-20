@@ -15,6 +15,11 @@ public class UserController {
         this.userService = userService;
     }
 
+    @GetMapping("reset-password")
+    public ResponseEntity<UserRecords.ApiResponse<Void>> resetPassword(@RequestBody UserRecords.ResetPasswordRequest resetPasswordRequest){
+        return ResponseEntity.ok(userService.ChangePassword(resetPasswordRequest));
+    }
+
     //Auth Endpoints
     @GetMapping("auth")
     public ResponseEntity<UserRecords.ApiResponse<Void>> checkAuth(){
@@ -22,17 +27,17 @@ public class UserController {
     }
 
     @PostMapping("auth/register")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord>> registerUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
-        return ResponseEntity.ok(userService.RegisterUserWithCredentials(credentialsSubmitRequestRecord));
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse>> registerUser(@RequestBody UserRecords.CredentialsSubmitRequest credentialsSubmitRequest){
+        return ResponseEntity.ok(userService.RegisterUserWithCredentials(credentialsSubmitRequest));
     }
 
     @PostMapping("auth/login")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord>> loginUser(@RequestBody UserRecords.CredentialsSubmitRequestRecord credentialsSubmitRequestRecord){
-        return ResponseEntity.ok(userService.LoginUserWithCredentials(credentialsSubmitRequestRecord));
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse>> loginUser(@RequestBody UserRecords.CredentialsSubmitRequest credentialsSubmitRequest){
+        return ResponseEntity.ok(userService.LoginUserWithCredentials(credentialsSubmitRequest));
     }
 
     @PostMapping("auth/refresh")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponseRecord>> refreshToken(@RequestBody UserRecords.RefreshTokenRequestRecord refreshTokenRequestRecord){
-        return ResponseEntity.ok(userService.RefreshTokens(refreshTokenRequestRecord));
+    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse>> refreshToken(@RequestBody UserRecords.RefreshTokenRequest refreshTokenRequest){
+        return ResponseEntity.ok(userService.RefreshToken(refreshTokenRequest));
     }
 }

@@ -6,6 +6,9 @@ public class TimeUtil {
     public static Instant getCurrentDate(){
         return Instant.now();
     }
+    public static Instant get15MinutesFromNow(){
+        return Instant.now().plusMillis(900 * 1000);
+    }
     public static Instant getHourFromNow(){
         return Instant.now().plusMillis(3600 * 1000);
     }
