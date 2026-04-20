@@ -14,6 +14,7 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -36,6 +37,13 @@ public class TokenService {
     //Secret Values sources from secrets.properties
     @Value("${jwt.secret}")
     private String tokenSecret;
+
+    @PostConstruct
+    public void init() {
+        if (tokenSecret == null || tokenSecret.length() < 32) {
+            throw new IllegalStateException("jwt.secret must be at least 32 characters long.");
+        }
+    }
 
     //Methods below are for generating JWTToken and RefreshToken
     public String generateJWTToken(UserEntity userEntity) throws JOSEException {
@@ -78,7 +86,7 @@ public class TokenService {
             throw new InvalidRefreshTokenException("Please Log in again.", "INVALID_TOKEN");
         }
     }
-    public Optional<UserEntity> validateJWTToken(String token){
+    public JWTClaimsSet validateJWTToken(String token){
         JWTClaimsSet claimsSet;
         try {
             JWSObject jwsObject = JWSObject.parse(token);
@@ -97,8 +105,7 @@ public class TokenService {
             throw new ExpiredTokenException("Please Log in again.", "EXPIRED_TOKEN");
         }
 
-        //Returning potential User from DB.
-        return userRepository.findByEmail(claimsSet.getSubject());
+        return claimsSet;
     }
 
     //Methods below Parse Details about User from Token
@@ -112,10 +119,9 @@ public class TokenService {
         return claimSet.getExpirationTime();
     }
     public String parseTokenFromHeader(String header){
-        String token = "";
         if(header != null && header.startsWith("Bearer ")) {
-            token = header.substring(7);
+            return header.substring(7);
         }
-        return token;
+        return null;
     }
 }

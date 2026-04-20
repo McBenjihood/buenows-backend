@@ -39,7 +39,8 @@ public class UserService {
     }
 
     public UserEntity getUserEntityFromToken(String token){
-        Optional<UserEntity> userEntity = tokenService.validateJWTToken(token);
+        com.nimbusds.jwt.JWTClaimsSet claimsSet = tokenService.validateJWTToken(token);
+        Optional<UserEntity> userEntity = userRepository.findByEmail(claimsSet.getSubject());
         if(userEntity.isPresent()){
             return userEntity.get();
         }else {
@@ -92,7 +93,7 @@ public class UserService {
                 "User with Email: '" + credentialsSubmitRequestRecord.email() + "' registered successfully",
                 new UserRecords.SuccessfulAuthResponseRecord(
                         JWT,
-                        user.getEmail()
+                        user.getRefreshTokenEntity().getToken()
                 )
         );
     }
