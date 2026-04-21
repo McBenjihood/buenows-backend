@@ -1,6 +1,6 @@
 package com.buenws.buenws_backend.API.Controller;
 
-import com.buenws.buenws_backend.API.Records.UserRecords;
+import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,29 +15,36 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("reset-password")
-    public ResponseEntity<UserRecords.ApiResponse<Void>> resetPassword(@RequestBody UserRecords.ResetPasswordRequest resetPasswordRequest){
-        return ResponseEntity.ok(userService.ChangePassword(resetPasswordRequest));
+    @PostMapping("request-reset-password")
+    public ResponseEntity<Records.ApiResponse<Void>> InitChangePassword(@RequestBody Records.InitResetPasswordRequest initResetPasswordRequest){
+        return ResponseEntity.ok(userService.InitChangePassword(initResetPasswordRequest));
     }
+
+
+    @PostMapping("reset-password")
+    public ResponseEntity<Records.ApiResponse<Void>> VerifyOTP(@RequestBody Records.VerifyOTPResetPasswordRequest verifyOTPResetPasswordRequest){
+        return ResponseEntity.ok(userService.VerifyOTPChangePassword(verifyOTPResetPasswordRequest));
+    }
+
 
     //Auth Endpoints
     @GetMapping("auth")
-    public ResponseEntity<UserRecords.ApiResponse<Void>> checkAuth(){
-        return ResponseEntity.ok(UserRecords.ApiResponse.success("Valid Authentication"));
+    public ResponseEntity<Records.ApiResponse<Void>> checkAuth(){
+        return ResponseEntity.ok(Records.ApiResponse.success("Valid Authentication"));
     }
 
     @PostMapping("auth/register")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse>> registerUser(@RequestBody UserRecords.CredentialsSubmitRequest credentialsSubmitRequest){
+    public ResponseEntity<Records.ApiResponse<Records.SuccessfulAuthResponse>> registerUser(@RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest){
         return ResponseEntity.ok(userService.RegisterUserWithCredentials(credentialsSubmitRequest));
     }
 
     @PostMapping("auth/login")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse>> loginUser(@RequestBody UserRecords.CredentialsSubmitRequest credentialsSubmitRequest){
+    public ResponseEntity<Records.ApiResponse<Records.SuccessfulAuthResponse>> loginUser(@RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest){
         return ResponseEntity.ok(userService.LoginUserWithCredentials(credentialsSubmitRequest));
     }
 
     @PostMapping("auth/refresh")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse>> refreshToken(@RequestBody UserRecords.RefreshTokenRequest refreshTokenRequest){
+    public ResponseEntity<Records.ApiResponse<Records.SuccessfulAuthResponse>> refreshToken(@RequestBody Records.RefreshTokenRequest refreshTokenRequest){
         return ResponseEntity.ok(userService.RefreshToken(refreshTokenRequest));
     }
 }

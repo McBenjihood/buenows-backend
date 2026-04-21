@@ -1,18 +1,15 @@
 package com.buenws.buenws_backend;
 
 import com.buenws.buenws_backend.API.Entity.UserEntity;
-import com.buenws.buenws_backend.API.Records.UserRecords;
 import com.buenws.buenws_backend.API.Repository.UserRepository;
 import com.buenws.buenws_backend.API.Service.UserAssetService;
+import com.buenws.buenws_backend.Util.MailUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mock.web.MockMultipartFile;
 
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 
 
@@ -48,7 +45,14 @@ class BuenowsBackendApplicationTests {
 
 	//Need to redo this test
 	@Test
-	void TestMultipartImageUpload() throws IOException {
+	void TestSendOTPMail() throws IOException {
+		//Arrange
+		String recipient = "benjaminmikagerresheim@gmail.com";
+
+		//Act
+		MailUtil.SendOTPMail(recipient);
+
+		//Assert
 	}
 
 }

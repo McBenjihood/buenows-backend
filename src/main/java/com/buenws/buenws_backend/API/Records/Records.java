@@ -2,7 +2,7 @@ package com.buenws.buenws_backend.API.Records;
 
 import java.lang.reflect.Array;
 
-public class UserRecords
+public class Records
 {
     //Generic Response
     public record ApiResponse<T>(
@@ -52,8 +52,13 @@ public class UserRecords
     public record RefreshTokenRequest(
             String refresh_token
     ){}
-    public record ResetPasswordRequest(
+    public record InitResetPasswordRequest(
             String email
+    ){}
+    public record VerifyOTPResetPasswordRequest(
+            String email,
+            String password,
+            String otp
     ){}
 
 

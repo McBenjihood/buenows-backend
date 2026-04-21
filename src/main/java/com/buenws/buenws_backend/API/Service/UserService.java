@@ -3,13 +3,13 @@ package com.buenws.buenws_backend.API.Service;
 import com.buenws.buenws_backend.API.Entity.RefreshTokenEntity;
 import com.buenws.buenws_backend.API.Entity.ResetCodeEntity;
 import com.buenws.buenws_backend.API.Entity.UserEntity;
-import com.buenws.buenws_backend.API.Exception.Custom.DuplicateUserException;
-import com.buenws.buenws_backend.API.Exception.Custom.GenerateTokenException;
-import com.buenws.buenws_backend.API.Exception.Custom.InvalidUserException;
-import com.buenws.buenws_backend.API.Exception.Custom.ParseTokenException;
-import com.buenws.buenws_backend.API.Records.UserRecords;
+import com.buenws.buenws_backend.API.Exception.Custom.*;
+import com.buenws.buenws_backend.API.Records.Records;
+import com.buenws.buenws_backend.API.Repository.RefreshTokenRepository;
+import com.buenws.buenws_backend.API.Repository.ResetCodeRepository;
 import com.buenws.buenws_backend.API.Repository.UserRepository;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
+import com.buenws.buenws_backend.Util.CryptographyUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -31,12 +32,16 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final ResetCodeRepository resetCodeEntityRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService, AuthenticationManager authenticationManager) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService, AuthenticationManager authenticationManager, RefreshTokenRepository refreshTokenRepository, ResetCodeRepository resetCodeEntityRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.resetCodeEntityRepository = resetCodeEntityRepository;
     }
 
     public UserEntity getUserEntityFromToken(String token){
@@ -59,7 +64,7 @@ public class UserService {
 
     //Register Logic
     @Transactional
-    public UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse> RegisterUserWithCredentials(UserRecords.CredentialsSubmitRequest credentialsSubmitRequest) {
+    public Records.ApiResponse<Records.SuccessfulAuthResponse> RegisterUserWithCredentials(Records.CredentialsSubmitRequest credentialsSubmitRequest) {
         UserEntity user = new UserEntity();
 
         user.setAuthorities(List.of("ROLE_USER"));
@@ -74,8 +79,7 @@ public class UserService {
                 ));
         user.setResetCodeEntity(
             new ResetCodeEntity(
-                    TimeUtil.getCurrentDate(),
-                    TimeUtil.get15MinutesFromNow()
+                    user
             )
         );
         try {
@@ -95,9 +99,9 @@ public class UserService {
             throw new GenerateTokenException("Error login User in. Please try again.", "GENERATE_TOKEN_ERROR");
         }
 
-        return UserRecords.ApiResponse.success(
+        return Records.ApiResponse.success(
                 "User with Email: '" + credentialsSubmitRequest.email() + "' registered successfully",
-                new UserRecords.SuccessfulAuthResponse(
+                new Records.SuccessfulAuthResponse(
                         JWT,
                         user.getRefreshTokenEntity().getToken()
                 )
@@ -106,7 +110,7 @@ public class UserService {
 
     //Login Logic
     @Transactional
-    public UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse> LoginUserWithCredentials(UserRecords.CredentialsSubmitRequest credentialsSubmitRequest) {
+    public Records.ApiResponse<Records.SuccessfulAuthResponse> LoginUserWithCredentials(Records.CredentialsSubmitRequest credentialsSubmitRequest) {
 
         try {
             Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
@@ -130,9 +134,9 @@ public class UserService {
             user.getRefreshTokenEntity().setToken(refreshToken);
             userRepository.save(user);
 
-            return UserRecords.ApiResponse.success(
+            return Records.ApiResponse.success(
                     "Log in was successful.",
-                    new UserRecords.SuccessfulAuthResponse(
+                    new Records.SuccessfulAuthResponse(
                             JWTToken,
                             refreshToken
                     )
@@ -145,7 +149,7 @@ public class UserService {
 
     //RefreshToken Logic
     @Transactional
-    public UserRecords.ApiResponse<UserRecords.SuccessfulAuthResponse> RefreshToken(UserRecords.RefreshTokenRequest refreshTokenRequest){
+    public Records.ApiResponse<Records.SuccessfulAuthResponse> RefreshToken(Records.RefreshTokenRequest refreshTokenRequest){
 
         RefreshTokenEntity refreshTokenEntity;
         String JWTToken;
@@ -165,11 +169,11 @@ public class UserService {
         refreshTokenEntity.setEdited_at(TimeUtil.getCurrentDate());
         refreshTokenEntity.setExpires_at(TimeUtil.getWeekFromNow());
 
-        userRepository.save(userEntity);
+        refreshTokenRepository.save(refreshTokenEntity);
 
-        return UserRecords.ApiResponse.success(
+        return Records.ApiResponse.success(
                 "Tokens generated successfully.",
-                new UserRecords.SuccessfulAuthResponse(
+                new Records.SuccessfulAuthResponse(
                         JWTToken,
                         RefreshToken
                 )
@@ -177,14 +181,35 @@ public class UserService {
     }
 
     //Reset Password Logic
-    public UserRecords.ApiResponse<Void> ChangePassword(UserRecords.ResetPasswordRequest resetPasswordRequest){
-        UserEntity user = getUserEntityFromEmail(resetPasswordRequest.email());
+    public Records.ApiResponse<Void> InitChangePassword(Records.InitResetPasswordRequest initResetPasswordRequest){
+        UserEntity user = getUserEntityFromEmail(initResetPasswordRequest.email());
         ResetCodeEntity resetCodeEntity = user.getResetCodeEntity();
 
+        resetCodeEntity.setReset_code(CryptographyUtil.HashString(CryptographyUtil.generateOTP()));
+        resetCodeEntity.setActive(true);
+        resetCodeEntity.setUpdated_at(TimeUtil.getCurrentDate());
+        resetCodeEntity.setExpires_at(TimeUtil.get15MinutesFromNow());
 
+        resetCodeEntityRepository.save(resetCodeEntity);
 
-        return UserRecords.ApiResponse.success(
+        return Records.ApiResponse.success(
                 "If an account exists, an email to reset your password has been sent."
         );
+    }
+
+    public Records.ApiResponse<Void> VerifyOTPChangePassword(Records.VerifyOTPResetPasswordRequest verifyOTPResetPasswordRequest){
+        UserEntity user = getUserEntityFromEmail(verifyOTPResetPasswordRequest.email());
+        ResetCodeEntity resetCodeEntity = user.getResetCodeEntity();
+
+        if (resetCodeEntity.getActive() && TimeUtil.getCurrentDate().isBefore(resetCodeEntity.getExpires_at())){
+            if(Objects.equals(resetCodeEntity.getReset_code(), CryptographyUtil.HashString(verifyOTPResetPasswordRequest.otp()))){
+                user.setPassword(passwordEncoder.encode(verifyOTPResetPasswordRequest.password()));
+                return Records.ApiResponse.success("Password was successfully changed.");
+            }else {
+                throw new OTPException("The entered Code was not valid.", "INVALID_OTP");
+            }
+        }else{
+            throw new ResetPasswordException("Couldn't change Password for User with this Email", "INVALID_USER");
+        }
     }
 }

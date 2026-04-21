@@ -3,7 +3,7 @@ package com.buenws.buenws_backend.API.Service;
 import com.buenws.buenws_backend.API.Entity.UserAssetEntity;
 import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidFileOperation;
-import com.buenws.buenws_backend.API.Records.UserRecords;
+import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.UserAssetsRepository;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.Util.FileUtil;
@@ -36,7 +36,7 @@ public class UserAssetService {
     }
 
     @Transactional
-    public UserRecords.ApiResponse<UserRecords.UploadFileResponse> handleImageUpload(MultipartFile file, String Token) {
+    public Records.ApiResponse<Records.UploadFileResponse> handleImageUpload(MultipartFile file, String Token) {
         try {
             UserEntity user = userService.getUserEntityFromToken(Token);
             Path uploadPath = Paths.get(UPLOAD_DIR + user.getId() + "/");
@@ -69,9 +69,9 @@ public class UserAssetService {
             UserAssetEntity userAssetEntity = new UserAssetEntity("image", "http://localhost:8080/images/" + user.getId() + "/"+ FilePrefix + "_image.png", OutputFile.getPath(), user);
             userAssetsRepository.save(userAssetEntity);
 
-            return UserRecords.ApiResponse.success(
+            return Records.ApiResponse.success(
                     "File uploaded: " + file.getOriginalFilename(),
-                    new UserRecords.UploadFileResponse(
+                    new Records.UploadFileResponse(
                             userAssetEntity.getAssetId(),
                             userAssetEntity.getType(),
                             userAssetEntity.getUrl()
@@ -86,12 +86,12 @@ public class UserAssetService {
         }
     }
 
-    public UserRecords.ApiResponse<List<String>> getImageList(String token) {
+    public Records.ApiResponse<List<String>> getImageList(String token) {
         try {
             UserEntity user = userService.getUserEntityFromToken(token);
 
 
-            return UserRecords.ApiResponse.success("Images loaded successfully.");
+            return Records.ApiResponse.success("Images loaded successfully.");
         } catch (Exception e) {
             throw new InvalidFileOperation(
                     "Could not load image list.",

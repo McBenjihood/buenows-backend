@@ -1,6 +1,6 @@
 package com.buenws.buenws_backend.API.Controller;
 
-import com.buenws.buenws_backend.API.Records.UserRecords;
+import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Service.InquiryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +19,7 @@ public class InquiryController {
 
     //Contact Form Submission
     @PostMapping("/contact-submissions")
-    public ResponseEntity<UserRecords.ApiResponse<Void>> submitContactForm(@RequestBody UserRecords.FormSubmissionRequest formSubmissionRequest) {
+    public ResponseEntity<Records.ApiResponse<Void>> submitContactForm(@RequestBody Records.FormSubmissionRequest formSubmissionRequest) {
         return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequest));
     }
 }

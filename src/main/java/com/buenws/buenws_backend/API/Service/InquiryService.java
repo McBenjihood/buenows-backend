@@ -2,7 +2,7 @@ package com.buenws.buenws_backend.API.Service;
 
 import com.buenws.buenws_backend.API.Entity.InquiryEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidInquiryException;
-import com.buenws.buenws_backend.API.Records.UserRecords;
+import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.InquiryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +17,7 @@ public class InquiryService {
     }
 
     @Transactional
-    public UserRecords.ApiResponse<Void> submitContactForm(UserRecords.FormSubmissionRequest formSubmissionRequest) {
+    public Records.ApiResponse<Void> submitContactForm(Records.FormSubmissionRequest formSubmissionRequest) {
         try {
             InquiryEntity inquiry = new InquiryEntity();
 
@@ -26,7 +26,7 @@ public class InquiryService {
             inquiry.setMessage(formSubmissionRequest.message());
 
             inquiryRepository.save(inquiry);
-            return UserRecords.ApiResponse.success("Contact Form was submitted.");
+            return Records.ApiResponse.success("Contact Form was submitted.");
         } catch (Exception e) {
             throw new InvalidInquiryException("Could not submit inquiry to Database", "INVALID_INQUIRY", e);
         }

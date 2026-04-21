@@ -1,6 +1,6 @@
 package com.buenws.buenws_backend.API.Controller;
 
-import com.buenws.buenws_backend.API.Records.UserRecords;
+import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.API.Service.UserAssetService;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +22,7 @@ public class UserAssetController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<UserRecords.ApiResponse<UserRecords.UploadFileResponse>> handleFileUpload(
+    public ResponseEntity<Records.ApiResponse<Records.UploadFileResponse>> handleFileUpload(
             @RequestParam("file") MultipartFile file,
             @RequestHeader("Authorization") String authHeader
     ) {
@@ -30,7 +30,7 @@ public class UserAssetController {
     }
 
     @GetMapping("/get-files")
-    public ResponseEntity<UserRecords.ApiResponse<List<String>>> getImageList(
+    public ResponseEntity<Records.ApiResponse<List<String>>> getImageList(
             @RequestHeader("Authorization") String authHeader
     ) {
         return ResponseEntity.ok(userAssetService.getImageList(tokenService.parseTokenFromHeader(authHeader)));
