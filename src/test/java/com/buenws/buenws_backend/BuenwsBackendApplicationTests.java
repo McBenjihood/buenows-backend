@@ -21,7 +21,7 @@ class BuenowsBackendApplicationTests {
 
 	//Arrange
 	@Autowired
-	UserAssetService userAssetService;
+	MailUtil mailUtil;
 	@Autowired
 	UserRepository userRepository;
 
@@ -48,11 +48,11 @@ class BuenowsBackendApplicationTests {
 	void TestSendOTPMail() throws IOException {
 		//Arrange
 		String recipient = "benjaminmikagerresheim@gmail.com";
+		String subject = "Test Subject";
+		String newOTP = "123456";
 
-		//Act
-		MailUtil.SendOTPMail(recipient);
-
-		//Assert
+		//Act & Assert
+		assertTrue(mailUtil.SendOTPMail(recipient, subject, newOTP));
 	}
 
 }

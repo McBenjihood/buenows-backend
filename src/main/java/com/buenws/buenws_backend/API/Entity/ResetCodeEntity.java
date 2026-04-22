@@ -15,6 +15,7 @@ public class ResetCodeEntity {
 
     public ResetCodeEntity(UserEntity userEntity){
         this.reset_code = "";
+        this.verified_token = "";
         this.userEntity = userEntity;
     }
 
@@ -31,6 +32,9 @@ public class ResetCodeEntity {
 
     @Column(name = "active")
     private boolean active;
+
+    @Column(name = "verified_token")
+    String verified_token;
 
     @Column(name = "updated_at")
     private Instant updated_at;
@@ -51,8 +55,6 @@ public class ResetCodeEntity {
     }
 
     //Getters & Setters
-
-
     public String getReset_code() {
         return reset_code;
     }
@@ -86,5 +88,12 @@ public class ResetCodeEntity {
     }
     public boolean getActive() {
         return active;
+    }
+
+    public String getVerified_token() {
+        return verified_token;
+    }
+    public void setVerified_token(String verified_token) {
+        this.verified_token = verified_token;
     }
 }

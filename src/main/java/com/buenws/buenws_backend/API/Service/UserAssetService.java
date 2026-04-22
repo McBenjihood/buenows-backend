@@ -4,8 +4,8 @@ import com.buenws.buenws_backend.API.Entity.UserAssetEntity;
 import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidFileOperation;
 import com.buenws.buenws_backend.API.Records.Records;
-import com.buenws.buenws_backend.API.Repository.UserAssetsRepository;
-import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
+import com.buenws.buenws_backend.API.Repository.RepositoryRetrieval;
+import com.buenws.buenws_backend.API.Repository.Repositories.UserAssetsRepository;
 import com.buenws.buenws_backend.Util.FileUtil;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -23,22 +23,20 @@ import java.util.List;
 @Service
 public class UserAssetService {
 
-    private final TokenService tokenService;
-    private final UserService userService;
+    private final RepositoryRetrieval repositoryRetrieval;
     private final UserAssetsRepository userAssetsRepository;
 
     private final String UPLOAD_DIR = "src/main/resources/static/images/";
 
-    public UserAssetService(TokenService tokenService, UserService userService, UserAssetsRepository userAssetsRepository) {
-        this.tokenService = tokenService;
-        this.userService = userService;
+    public UserAssetService(RepositoryRetrieval repositoryRetrieval, UserAssetsRepository userAssetsRepository) {
+        this.repositoryRetrieval = repositoryRetrieval;
         this.userAssetsRepository = userAssetsRepository;
     }
 
     @Transactional
     public Records.ApiResponse<Records.UploadFileResponse> handleImageUpload(MultipartFile file, String Token) {
         try {
-            UserEntity user = userService.getUserEntityFromToken(Token);
+            UserEntity user = repositoryRetrieval.getUserEntityFromToken(Token);
             Path uploadPath = Paths.get(UPLOAD_DIR + user.getId() + "/");
 
             //creating a directory to store images
@@ -88,7 +86,7 @@ public class UserAssetService {
 
     public Records.ApiResponse<List<String>> getImageList(String token) {
         try {
-            UserEntity user = userService.getUserEntityFromToken(token);
+            UserEntity user = repositoryRetrieval.getUserEntityFromToken(token);
 
 
             return Records.ApiResponse.success("Images loaded successfully.");

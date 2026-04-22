@@ -5,42 +5,47 @@ import jakarta.mail.*;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.mail.MailAuthenticationException;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 
+@Component
 public class MailUtil {
 
-    @Value("${email.password}")
-    private static String password;
+    private final JavaMailSender mailSender;
 
-    public static void SendOTPMail(String recipient, String subject, String content){
-        Properties props = new Properties();
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-
-        Session session = Session.getInstance(props, new Authenticator() {
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication("info.buenows@gmail.com", password);
-            }
-        });
-
-        Message message = new MimeMessage(session);
-        try {
-            message.setFrom(new InternetAddress("info.buenows@gmail.com"));
-            message.setRecipients(Message.RecipientType.TO,
-                    InternetAddress.parse(recipient));
-            message.setSubject(subject);
-            message.setContent(content, "text/html");
-            Transport.send(message);
-        }catch (AddressException e) {
-            throw new MailException("Invalid Recipient", "INVALID_MAIL", e);
-        } catch (MessagingException e) {
-            throw new MailException("Invalid Subject or Text","INVALID_MAIL",e);
-        }
+    public MailUtil(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
     }
 
+    public boolean SendOTPMail(String recipient, String subject, String newOTP){
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
+            helper.setTo(recipient);
+            helper.setSubject(subject);
+
+            ClassPathResource resource = new ClassPathResource("templates/otp_template.html");
+            String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            helper.setText(htmlTemplate.replace("{{OTP}}", newOTP), true);
+
+            mailSender.send(message);
+            return true;
+        }catch (MessagingException e) {
+            throw new MailException("Invalid Subject or Text","INVALID_MAIL",e);
+        } catch (IOException | MailAuthenticationException e) {
+            throw new MailException("Internal Error occurred. Please contact support under: info.buenows@gmail.com", "INVALID_MAIL", e);
+        }
+    }
 }

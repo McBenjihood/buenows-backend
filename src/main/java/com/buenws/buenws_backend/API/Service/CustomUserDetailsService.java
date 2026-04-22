@@ -1,6 +1,6 @@
 package com.buenws.buenws_backend.API.Service;
 
-import com.buenws.buenws_backend.API.Repository.UserRepository;
+import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

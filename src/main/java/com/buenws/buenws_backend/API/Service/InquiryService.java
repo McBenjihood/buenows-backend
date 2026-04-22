@@ -3,7 +3,7 @@ package com.buenws.buenws_backend.API.Service;
 import com.buenws.buenws_backend.API.Entity.InquiryEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidInquiryException;
 import com.buenws.buenws_backend.API.Records.Records;
-import com.buenws.buenws_backend.API.Repository.InquiryRepository;
+import com.buenws.buenws_backend.API.Repository.Repositories.InquiryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

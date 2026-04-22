@@ -5,8 +5,8 @@ import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.ExpiredTokenException;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidRefreshTokenException;
 import com.buenws.buenws_backend.API.Exception.Custom.ParseTokenException;
-import com.buenws.buenws_backend.API.Repository.RefreshTokenRepository;
-import com.buenws.buenws_backend.API.Repository.UserRepository;
+import com.buenws.buenws_backend.API.Repository.Repositories.RefreshTokenRepository;
+import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -51,7 +51,7 @@ public class TokenService {
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(userEntity.getEmail())
                 .issuer("https://buenows.org")
-                .issueTime(Date.from(TimeUtil.getCurrentDate()))
+                .issueTime(Date.from(TimeUtil.getCurrentTime()))
                 .expirationTime(Date.from(TimeUtil.getHourFromNow()))
                 .claim("roles", userEntity.getAuthorities())
                 .build();
@@ -77,7 +77,7 @@ public class TokenService {
         Optional<RefreshTokenEntity> refreshTokenOptional = refreshTokenRepository.findByToken(token);
         if (refreshTokenOptional.isPresent()) {
             RefreshTokenEntity refreshTokenEntity = refreshTokenOptional.get();
-            if (TimeUtil.getCurrentDate().isBefore(refreshTokenEntity.getExpires_at())) {
+            if (TimeUtil.getCurrentTime().isBefore(refreshTokenEntity.getExpires_at())) {
                 return refreshTokenEntity;
             } else {
                 throw new ExpiredTokenException("Please Log in again.", "EXPIRED_TOKEN");

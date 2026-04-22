@@ -37,7 +37,9 @@ public class Records
             String type,
             String url
     ){}
-
+    public record VerifyOTPResponse(
+            String verified_token
+    ){}
 
     //Requests
     public record FormSubmissionRequest(
@@ -47,6 +49,8 @@ public class Records
     ){}
     public record CredentialsSubmitRequest(
             String email,
+            String first_name,
+            String last_name,
             String password
     ){}
     public record RefreshTokenRequest(
@@ -55,10 +59,13 @@ public class Records
     public record InitResetPasswordRequest(
             String email
     ){}
-    public record VerifyOTPResetPasswordRequest(
+    public record VerifyOTPRequest(
             String email,
-            String password,
             String otp
+    ){}
+    public record ChangePasswordRequest(
+            String password,
+            String verified_token
     ){}
 
 

@@ -1,4 +1,4 @@
-package com.buenws.buenws_backend.API.Repository;
+package com.buenws.buenws_backend.API.Repository.Repositories;
 
 import com.buenws.buenws_backend.API.Entity.UserAssetEntity;
 import org.springframework.data.jdbc.repository.query.Query;

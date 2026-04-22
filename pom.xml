@@ -55,11 +55,14 @@
 			<artifactId>guava</artifactId>
 			<version>33.5.0-jre</version>
 		</dependency>
+
+		<!-- E-Mail -->
 		<dependency>
-			<groupId>jakarta.mail</groupId>
-			<artifactId>jakarta.mail-api</artifactId>
-			<version>2.2.0-M1</version>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+			<version>4.1.0-M4</version>
 		</dependency>
+
 		<!-- Data & Persistence: Database drivers, ORM, and session management -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -3,7 +3,7 @@ package com.buenws.buenws_backend.Util;
 import java.time.Instant;
 
 public class TimeUtil {
-    public static Instant getCurrentDate(){
+    public static Instant getCurrentTime(){
         return Instant.now();
     }
     public static Instant get15MinutesFromNow(){

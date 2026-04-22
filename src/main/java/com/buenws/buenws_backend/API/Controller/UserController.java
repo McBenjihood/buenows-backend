@@ -15,15 +15,20 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("request-reset-password")
+    //Password changes
+    @PostMapping("request-otp")
     public ResponseEntity<Records.ApiResponse<Void>> InitChangePassword(@RequestBody Records.InitResetPasswordRequest initResetPasswordRequest){
         return ResponseEntity.ok(userService.InitChangePassword(initResetPasswordRequest));
     }
 
+    @PostMapping("verify-otp")
+    public ResponseEntity<Records.ApiResponse<Records.VerifyOTPResponse>> VerifyOTP(@RequestBody Records.VerifyOTPRequest verifyOTPRequest){
+        return ResponseEntity.ok(userService.VerifyOTP(verifyOTPRequest));
+    }
 
-    @PostMapping("reset-password")
-    public ResponseEntity<Records.ApiResponse<Void>> VerifyOTP(@RequestBody Records.VerifyOTPResetPasswordRequest verifyOTPResetPasswordRequest){
-        return ResponseEntity.ok(userService.VerifyOTPChangePassword(verifyOTPResetPasswordRequest));
+    @PostMapping("change-password")
+    public ResponseEntity<Records.ApiResponse<Void>> ChangePassword(@RequestBody Records.ChangePasswordRequest changePasswordRequest){
+        return ResponseEntity.ok(userService.ChangePassword(changePasswordRequest));
     }
 
 
