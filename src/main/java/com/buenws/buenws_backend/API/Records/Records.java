@@ -40,6 +40,13 @@ public class Records
     public record VerifyOTPResponse(
             String verified_token
     ){}
+    public record InquiryResponse(
+            long inquiry_id,
+            String email,
+            String title,
+            String message,
+            String created_at
+    ){}
 
     //Requests
     public record FormSubmissionRequest(
@@ -68,14 +75,11 @@ public class Records
             String verified_token
     ){}
 
-
     //Image Stuff (Not ready yet.)
     public record Image(
-            
+
     ){}
     public record getImageListRequest(
             Array[] Images
     ){}
 }
-
-

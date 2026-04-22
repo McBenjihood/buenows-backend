@@ -1,9 +1,18 @@
+version: "3.9"
+
 services:
-  postgres:
-    image: 'postgres:latest'
+  db_postgres:
+    image: postgres:latest
+    container_name: postgres_buenows
+    restart: always
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      POSTGRES_PASSWORD: "5Ak94NiJqIBfY76By2i5"
+      POSTGRES_DB: "buenows-main"
+      POSTGRES_USER: "postgres"
     ports:
-      - '5432'
+      - "2987:5432"
+    volumes:
+      - postgres_data_fresh:/var/lib/postgresql
+
+volumes:
+  postgres_data_fresh:

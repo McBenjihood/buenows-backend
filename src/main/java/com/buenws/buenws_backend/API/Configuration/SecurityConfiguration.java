@@ -41,12 +41,17 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/user/auth/register").permitAll()
                         .requestMatchers("/api/user/auth/login").permitAll()
                         .requestMatchers("/api/user/auth/refresh").permitAll()
-                        .requestMatchers("/images/**").permitAll()
                         .requestMatchers("/api/user/reset-password").permitAll()
+                        .requestMatchers("/api/user/request-reset-password").permitAll()
                         .requestMatchers("/api/user/request-otp").permitAll()
                         .requestMatchers("/api/user/verify-otp").permitAll()
                         .requestMatchers("/api/user/change-password").permitAll()
+                        .requestMatchers("/images/**").permitAll()
+
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/user/auth").authenticated()
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterAfter(bearerTokenAuthFilter, BasicAuthenticationFilter.class);

@@ -6,6 +6,8 @@ import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.InquiryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Comparator;
+import java.util.List;
 
 @Service
 public class InquiryService {
@@ -30,5 +32,21 @@ public class InquiryService {
         } catch (Exception e) {
             throw new InvalidInquiryException("Could not submit inquiry to Database", "INVALID_INQUIRY", e);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Records.ApiResponse<List<Records.InquiryResponse>> getAllInquiries() {
+        List<Records.InquiryResponse> inquiries = inquiryRepository.findAll().stream()
+                .sorted(Comparator.comparing(InquiryEntity::getCreated_at).reversed())
+                .map(inquiry -> new Records.InquiryResponse(
+                        inquiry.getId(),
+                        inquiry.getEmail(),
+                        inquiry.getTitle(),
+                        inquiry.getMessage(),
+                        inquiry.getCreated_at() != null ? inquiry.getCreated_at().toString() : null
+                ))
+                .toList();
+
+        return Records.ApiResponse.success("Inquiries loaded successfully.", inquiries);
     }
 }
