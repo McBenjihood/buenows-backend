@@ -18,11 +18,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -57,17 +59,127 @@ public class UserService {
     public Records.ApiResponse<List<Records.AdminUserResponse>> getAllUsersForAdmin() {
         List<Records.AdminUserResponse> users = userRepository.findAll().stream()
                 .sorted(Comparator.comparing(UserEntity::getCreated_at).reversed())
-                .map(user -> new Records.AdminUserResponse(
-                        user.getId() != null ? user.getId().toString() : null,
-                        user.getEmail(),
-                        user.getFirst_name(),
-                        user.getLast_name(),
-                        user.getAuthorities(),
-                        user.getCreated_at() != null ? user.getCreated_at().toString() : null
-                ))
+                .map(this::mapAdminUser)
                 .toList();
 
         return Records.ApiResponse.success("Users loaded successfully.", users);
+    }
+
+    @Transactional
+    public Records.ApiResponse<Records.AdminUserResponse> updateUserRole(
+            UUID userId,
+            Records.AdminUpdateRoleRequest request
+    ) {
+        UserEntity targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
+
+        String normalizedRole = normalizeRole(request.role());
+
+        if (!normalizedRole.equals("ROLE_USER") && !normalizedRole.equals("ROLE_ADMIN")) {
+            throw new InvalidUserException("Role is not supported.", "INVALID_ROLE");
+        }
+
+        if (targetUser.getAuthorities() != null
+                && targetUser.getAuthorities().contains("ROLE_ADMIN")
+                && normalizedRole.equals("ROLE_USER")
+                && isLastAdmin(targetUser)) {
+            throw new InvalidUserException("The last admin cannot be downgraded.", "LAST_ADMIN_PROTECTED");
+        }
+
+        targetUser.setAuthorities(new ArrayList<>(List.of(normalizedRole)));
+        userRepository.save(targetUser);
+
+        return Records.ApiResponse.success(
+                "User role updated successfully.",
+                mapAdminUser(targetUser)
+        );
+    }
+
+    @Transactional
+    public Records.ApiResponse<Records.AdminUserResponse> updateUserProfile(
+            UUID userId,
+            Records.AdminUpdateUserProfileRequest request
+    ) {
+        UserEntity targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
+
+        targetUser.setFirst_name(normalizeOptionalText(request.first_name()));
+        targetUser.setLast_name(normalizeOptionalText(request.last_name()));
+
+        userRepository.save(targetUser);
+
+        return Records.ApiResponse.success(
+                "User profile updated successfully.",
+                mapAdminUser(targetUser)
+        );
+    }
+
+    @Transactional
+    public Records.ApiResponse<Void> deleteUserForAdmin(UUID userId) {
+        UserEntity targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
+
+        String currentAdminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        if (targetUser.getEmail() != null && targetUser.getEmail().equalsIgnoreCase(currentAdminEmail)) {
+            throw new InvalidUserException("You cannot delete your own account.", "SELF_DELETE_NOT_ALLOWED");
+        }
+
+        if (targetUser.getAuthorities() != null
+                && targetUser.getAuthorities().contains("ROLE_ADMIN")
+                && isLastAdmin(targetUser)) {
+            throw new InvalidUserException("The last admin cannot be deleted.", "LAST_ADMIN_PROTECTED");
+        }
+
+        userRepository.delete(targetUser);
+
+        return Records.ApiResponse.success("User deleted successfully.");
+    }
+
+    private Records.AdminUserResponse mapAdminUser(UserEntity user) {
+        return new Records.AdminUserResponse(
+                user.getId() != null ? user.getId().toString() : null,
+                user.getEmail(),
+                user.getFirst_name(),
+                user.getLast_name(),
+                user.getAuthorities(),
+                user.getCreated_at() != null ? user.getCreated_at().toString() : null
+        );
+    }
+
+    private boolean isLastAdmin(UserEntity user) {
+        long adminCount = userRepository.findAll().stream()
+                .filter(existingUser ->
+                        existingUser.getAuthorities() != null
+                                && existingUser.getAuthorities().contains("ROLE_ADMIN"))
+                .count();
+
+        return user.getAuthorities() != null
+                && user.getAuthorities().contains("ROLE_ADMIN")
+                && adminCount <= 1;
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null || role.isBlank()) {
+            throw new InvalidUserException("Role must not be empty.", "INVALID_ROLE");
+        }
+
+        String normalizedRole = role.trim().toUpperCase();
+
+        if (!normalizedRole.startsWith("ROLE_")) {
+            normalizedRole = "ROLE_" + normalizedRole;
+        }
+
+        return normalizedRole;
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Transactional
@@ -78,7 +190,7 @@ public class UserService {
         user.setFirst_name(credentialsSubmitRequest.first_name());
         user.setLast_name(credentialsSubmitRequest.last_name());
 
-        user.setAuthorities(List.of("ROLE_USER"));
+        user.setAuthorities(new ArrayList<>(List.of("ROLE_USER")));
         user.setEmail(credentialsSubmitRequest.email());
         user.setPassword(passwordEncoder.encode(credentialsSubmitRequest.password()));
         user.setRefreshTokenEntity(
@@ -116,7 +228,6 @@ public class UserService {
                         user.getRefreshTokenEntity().getToken()));
     }
 
-    // Login Logic
     @Transactional
     public Records.ApiResponse<Records.SuccessfulAuthResponse> LoginUserWithCredentials(
             Records.CredentialsSubmitRequest credentialsSubmitRequest) {
@@ -153,7 +264,6 @@ public class UserService {
         }
     }
 
-    // RefreshToken Logic
     @Transactional
     public Records.ApiResponse<Records.SuccessfulAuthResponse> RefreshToken(
             Records.RefreshTokenRequest refreshTokenRequest) {
@@ -185,7 +295,6 @@ public class UserService {
                         RefreshToken));
     }
 
-    // Reset Password Logic
     @Transactional
     public Records.ApiResponse<Void> InitChangePassword(Records.InitResetPasswordRequest initResetPasswordRequest) {
         UserEntity user = repositoryRetrieval.getUserEntityFromEmail(initResetPasswordRequest.email());

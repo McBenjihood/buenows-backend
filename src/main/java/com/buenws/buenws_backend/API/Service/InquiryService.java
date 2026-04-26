@@ -6,6 +6,7 @@ import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.InquiryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Comparator;
 import java.util.List;
 
@@ -48,5 +49,15 @@ public class InquiryService {
                 .toList();
 
         return Records.ApiResponse.success("Inquiries loaded successfully.", inquiries);
+    }
+
+    @Transactional
+    public Records.ApiResponse<Void> deleteInquiryForAdmin(Long inquiryId) {
+        InquiryEntity inquiry = inquiryRepository.findById(inquiryId)
+                .orElseThrow(() -> new InvalidInquiryException("Inquiry not found.", "INVALID_INQUIRY"));
+
+        inquiryRepository.delete(inquiry);
+
+        return Records.ApiResponse.success("Inquiry deleted successfully.");
     }
 }
