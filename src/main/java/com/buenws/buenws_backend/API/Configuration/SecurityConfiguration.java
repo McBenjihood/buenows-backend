@@ -3,9 +3,11 @@ package com.buenws.buenws_backend.API.Configuration;
 import com.buenws.buenws_backend.API.Service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -23,32 +25,38 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
-    BearerTokenAuthFilter bearerTokenAuthFilter;
-    CustomUserDetailsService customUserDetailsService;
+    private final BearerTokenAuthFilter bearerTokenAuthFilter;
 
-    public SecurityConfiguration(BearerTokenAuthFilter bearerTokenAuthFilter, CustomUserDetailsService customUserDetailsService) {
+    public SecurityConfiguration(BearerTokenAuthFilter bearerTokenAuthFilter) {
         this.bearerTokenAuthFilter = bearerTokenAuthFilter;
-        this.customUserDetailsService = customUserDetailsService;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) -> authorize
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         .requestMatchers("/api/inquiry/contact-submissions").permitAll()
+
                         .requestMatchers("/api/user/auth/register").permitAll()
                         .requestMatchers("/api/user/auth/login").permitAll()
                         .requestMatchers("/api/user/auth/refresh").permitAll()
+
                         .requestMatchers("/api/user/reset-password").permitAll()
                         .requestMatchers("/api/user/request-reset-password").permitAll()
                         .requestMatchers("/api/user/request-otp").permitAll()
                         .requestMatchers("/api/user/verify-otp").permitAll()
                         .requestMatchers("/api/user/change-password").permitAll()
+
                         .requestMatchers("/images/**").permitAll()
 
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/admin/**").hasRole("ADMIN")
+
                         .requestMatchers("/api/user/auth").authenticated()
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
 
@@ -63,10 +71,10 @@ public class SecurityConfiguration {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
-
+        config.setAllowedOriginPatterns(List.of("http://localhost:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -75,15 +83,15 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
     @Bean
     public AuthenticationManager authenticationManager(
             CustomUserDetailsService customUserDetailsService,
-            PasswordEncoder passwordEncoder) {
-
+            PasswordEncoder passwordEncoder
+    ) {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(customUserDetailsService);
         authenticationProvider.setPasswordEncoder(passwordEncoder);
 
