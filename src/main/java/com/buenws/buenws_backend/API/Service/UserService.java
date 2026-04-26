@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -40,8 +41,8 @@ public class UserService {
     private final RepositoryRetrieval repositoryRetrieval;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService,
-            AuthenticationManager authenticationManager, RefreshTokenRepository refreshTokenRepository,
-            ResetCodeRepository resetCodeRepository, MailUtil mailUtil, RepositoryRetrieval repositoryRetrieval) {
+                       AuthenticationManager authenticationManager, RefreshTokenRepository refreshTokenRepository,
+                       ResetCodeRepository resetCodeRepository, MailUtil mailUtil, RepositoryRetrieval repositoryRetrieval) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
@@ -50,6 +51,23 @@ public class UserService {
         this.resetCodeRepository = resetCodeRepository;
         this.mailUtil = mailUtil;
         this.repositoryRetrieval = repositoryRetrieval;
+    }
+
+    @Transactional(readOnly = true)
+    public Records.ApiResponse<List<Records.AdminUserResponse>> getAllUsersForAdmin() {
+        List<Records.AdminUserResponse> users = userRepository.findAll().stream()
+                .sorted(Comparator.comparing(UserEntity::getCreated_at).reversed())
+                .map(user -> new Records.AdminUserResponse(
+                        user.getId() != null ? user.getId().toString() : null,
+                        user.getEmail(),
+                        user.getFirst_name(),
+                        user.getLast_name(),
+                        user.getAuthorities(),
+                        user.getCreated_at() != null ? user.getCreated_at().toString() : null
+                ))
+                .toList();
+
+        return Records.ApiResponse.success("Users loaded successfully.", users);
     }
 
     @Transactional

@@ -47,6 +47,14 @@ public class Records
             String message,
             String created_at
     ){}
+    public record AdminUserResponse(
+            String user_id,
+            String email,
+            String first_name,
+            String last_name,
+            java.util.List<String> authorities,
+            String created_at
+    ){}
 
     //Requests
     public record FormSubmissionRequest(
