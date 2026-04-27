@@ -31,6 +31,25 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        boolean skip = path.equals("/api/user/auth/login")
+                || path.equals("/api/user/auth/register")
+                || path.equals("/api/user/auth/refresh")
+                || path.equals("/api/user/request-reset-password")
+                || path.equals("/api/user/reset-password")
+                || path.equals("/api/user/request-otp")
+                || path.equals("/api/user/verify-otp")
+                || path.equals("/api/inquiry/contact-submissions")
+                || path.startsWith("/images/");
+
+        System.out.println("FILTER CHECK: " + path + " skip=" + skip);
+
+        return skip;
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
