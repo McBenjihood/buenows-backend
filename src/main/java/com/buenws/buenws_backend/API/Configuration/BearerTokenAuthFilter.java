@@ -44,8 +44,6 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
                 || path.equals("/api/inquiry/contact-submissions")
                 || path.startsWith("/images/");
 
-        System.out.println("FILTER CHECK: " + path + " skip=" + skip);
-
         return skip;
     }
 
