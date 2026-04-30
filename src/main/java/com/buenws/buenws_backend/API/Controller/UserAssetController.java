@@ -9,10 +9,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+
 @RestController
 @RequestMapping("/api/files")
 public class UserAssetController {
-
+/*
     private final UserAssetService userAssetService;
     private final TokenService tokenService;
 
@@ -35,4 +36,5 @@ public class UserAssetController {
     ) {
         return ResponseEntity.ok(userAssetService.getImageList(tokenService.parseTokenFromHeader(authHeader)));
     }
+ */
 }

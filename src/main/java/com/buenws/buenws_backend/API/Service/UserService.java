@@ -14,6 +14,8 @@ import com.buenws.buenws_backend.Util.CryptographyUtil;
 import com.buenws.buenws_backend.Util.MailUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -52,6 +54,9 @@ public class UserService {
         this.repositoryRetrieval = repositoryRetrieval;
     }
 
+    @Value("${hashing.salt}")
+    String salt;
+
     @Transactional
     public Records.ApiResponse<Records.SuccessfulAuthResponse> RegisterUserWithCredentials(
             Records.CredentialsSubmitRequest credentialsSubmitRequest) {
@@ -74,14 +79,9 @@ public class UserService {
                         user));
         try {
             userRepository.save(user);
-        } catch (Exception e) {
-            if (e.getMessage().toUpperCase().contains("DUPLICATE KEY VALUE")) {
+        } catch (DuplicateKeyException e) {
                 throw new DuplicateUserException(
                         "User with Email: '" + credentialsSubmitRequest.email() + "' already exists", "DUPLICATE_USER");
-            } else {
-                throw new InvalidUserException("Could not create user: " + credentialsSubmitRequest.email(),
-                        "INVALID_USER");
-            }
         }
 
         String JWT;
@@ -119,16 +119,15 @@ public class UserService {
                 throw new GenerateTokenException("Error login User in. Please try again.", "GENERATE_TOKEN_ERROR");
             }
 
-            String refreshToken = tokenService.generateRefreshToken();
-
-            user.getRefreshTokenEntity().setToken(refreshToken);
             userRepository.save(user);
 
             return Records.ApiResponse.success(
                     "Log in was successful.",
                     new Records.SuccessfulAuthResponse(
                             JWTToken,
-                            refreshToken));
+                            user.getRefreshTokenEntity().getToken()
+                    )
+            );
 
         } catch (AuthenticationException e) {
             throw new InvalidUserException("Invalid email or password.", "INVALID_CREDENTIALS");
@@ -170,26 +169,30 @@ public class UserService {
     // Reset Password Logic
     @Transactional
     public Records.ApiResponse<Void> InitChangePassword(Records.InitResetPasswordRequest initResetPasswordRequest) {
-        UserEntity user = repositoryRetrieval.getUserEntityFromEmail(initResetPasswordRequest.email());
-        ResetCodeEntity resetCodeEntity = user.getResetCodeEntity();
+        try{
+            UserEntity user = repositoryRetrieval.getUserEntityFromEmail(initResetPasswordRequest.email());
 
-        String plainOTP = CryptographyUtil.generateOTP();
+            ResetCodeEntity resetCodeEntity = user.getResetCodeEntity();
 
-        resetCodeEntity.setReset_code(CryptographyUtil.HashString(plainOTP));
-        resetCodeEntity.setActive(true);
-        resetCodeEntity.setUpdated_at(TimeUtil.getCurrentTime());
-        resetCodeEntity.setExpires_at(TimeUtil.get15MinutesFromNow());
+            String plainOTP = CryptographyUtil.generateOTP();
 
-        mailUtil.SendOTPMail(initResetPasswordRequest.email(), "Confirming Identity to change your Password.",
-                plainOTP);
+            resetCodeEntity.setReset_code(CryptographyUtil.HashString(plainOTP, salt));
+            resetCodeEntity.setActive(true);
+            resetCodeEntity.setUpdated_at(TimeUtil.getCurrentTime());
+            resetCodeEntity.setExpires_at(TimeUtil.get15MinutesFromNow());
 
-        resetCodeRepository.save(resetCodeEntity);
+            mailUtil.SendOTPMail(initResetPasswordRequest.email(), "Confirming Identity to change your Password.",
+                    plainOTP);
+
+            resetCodeRepository.save(resetCodeEntity);
+        }catch (InvalidUserException e){}
 
         return Records.ApiResponse.success(
-                "If an account exists, an email to reset your password has been sent.");
+                "If an account exists, an email to reset your password has been sent."
+        );
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ResetPasswordException.class)
     public Records.ApiResponse<Records.VerifyOTPResponse> VerifyOTP(Records.VerifyOTPRequest verifyOTPRequest) {
         UserEntity user = repositoryRetrieval.getUserEntityFromEmail(verifyOTPRequest.email());
         ResetCodeEntity resetCodeEntity = user.getResetCodeEntity();
@@ -198,7 +201,7 @@ public class UserService {
         if (TimeUtil.getCurrentTime().isBefore(resetCodeEntity.getExpires_at()) && currentAttempts < 4) {
             resetCodeEntity.setAttempts(currentAttempts + 1);
 
-            if (Objects.equals(resetCodeEntity.getReset_code(), CryptographyUtil.HashString(verifyOTPRequest.otp()))
+            if (Objects.equals(resetCodeEntity.getReset_code(), CryptographyUtil.HashString(verifyOTPRequest.otp(), salt))
                     && resetCodeEntity.getActive()) {
                 String verified_token = UUID.randomUUID().toString();
                 resetCodeEntity.setVerified_token(verified_token);
@@ -217,19 +220,25 @@ public class UserService {
 
     @Transactional
     public Records.ApiResponse<Void> ChangePassword(Records.ChangePasswordRequest changePasswordRequest) {
-        ResetCodeEntity resetCodeEntity = repositoryRetrieval
-                .getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
-        UserEntity user = resetCodeEntity.getUserEntity();
-        user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
+        if(changePasswordRequest.verified_token() != null && !changePasswordRequest.verified_token().isEmpty()){
+            ResetCodeEntity resetCodeEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
 
-        resetCodeEntity.setActive(false);
-        resetCodeEntity.setVerified_token("");
-        resetCodeEntity.setExpires_at(TimeUtil.getCurrentTime());
-        resetCodeEntity.setAttempts(0);
+            if (TimeUtil.getCurrentTime().isBefore(resetCodeEntity.getExpires_at())){
+                UserEntity user = resetCodeEntity.getUserEntity();
+                user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
 
-        resetCodeRepository.save(resetCodeEntity);
-        userRepository.save(user);
+                resetCodeEntity.setActive(false);
+                resetCodeEntity.setVerified_token("");
+                resetCodeEntity.setExpires_at(TimeUtil.getCurrentTime());
+                resetCodeEntity.setAttempts(0);
 
-        return Records.ApiResponse.success("Password was successfully changed.");
+                resetCodeRepository.save(resetCodeEntity);
+                userRepository.save(user);
+
+                return Records.ApiResponse.success("Password was successfully changed.");
+            }
+
+        }
+        throw new ResetPasswordException("Password couldn't be changed", "INVALID_OTP");
     }
 }

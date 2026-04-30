@@ -22,6 +22,9 @@ public class Records
         public static <T> ApiResponse<T> error (String message, T data){
             return new ApiResponse<>(false, message, data);
         }
+        public static <T> ApiResponse<T> error (String message){
+            return new ApiResponse<>(false, message, null);
+        }
     }
 
     //Specific Responses

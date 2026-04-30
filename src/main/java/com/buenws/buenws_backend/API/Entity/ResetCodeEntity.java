@@ -15,7 +15,7 @@ public class ResetCodeEntity {
 
     public ResetCodeEntity(UserEntity userEntity){
         this.reset_code = "";
-        this.verified_token = "";
+        this.verified_token = null;
         this.userEntity = userEntity;
     }
 
