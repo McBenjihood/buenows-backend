@@ -1,6 +1,7 @@
 uploads/**
 src/main/resources/static**
 
+.env
 
 HELP.md
 target/

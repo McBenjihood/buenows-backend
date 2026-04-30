@@ -38,6 +38,8 @@ public class DataInitializer implements CommandLineRunner {
         if (!adminExists) {
             UserEntity admin = new UserEntity();
             admin.setEmail(adminEmail);
+            admin.setFirst_name("John");
+            admin.setLast_name("Schmidt");
             admin.setPassword(passwordEncoder.encode(adminPassword));
             admin.setAuthorities(List.of("ROLE_ADMIN"));
 
