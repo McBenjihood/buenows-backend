@@ -10,7 +10,6 @@ public class Records
             String message,
             T data
     ){
-        //Successful Response
         public static <T> ApiResponse<T> success (String message, T data){
             return new ApiResponse<>(true, message, data);
         }
@@ -18,7 +17,6 @@ public class Records
             return new ApiResponse<>(true, message, null);
         }
 
-        //Unsuccessful Response
         public static <T> ApiResponse<T> error (String message, T data){
             return new ApiResponse<>(false, message, data);
         }
@@ -49,6 +47,21 @@ public class Records
             String title,
             String message,
             String created_at
+    ){}
+    public record AdminUserResponse(
+            String user_id,
+            String email,
+            String first_name,
+            String last_name,
+            java.util.List<String> authorities,
+            String created_at
+    ){}
+    public record AdminUpdateRoleRequest(
+            String role
+    ){}
+    public record AdminUpdateUserProfileRequest(
+            String first_name,
+            String last_name
     ){}
 
     //Requests
