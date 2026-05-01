@@ -220,15 +220,14 @@ public class UserService {
 
     // RefreshToken Logic
     @Transactional
-    public Records.ApiResponse<Records.SuccessfulAuthResponse> RefreshToken(
-            Records.RefreshTokenRequest refreshTokenRequest) {
+    public Records.ApiResponse<Records.SuccessfulAuthResponse> RefreshToken(String refreshToken) {
 
         RefreshTokenEntity refreshTokenEntity;
         String JWTToken;
         UserEntity userEntity;
 
         try {
-            refreshTokenEntity = tokenService.validateRefreshToken(refreshTokenRequest.refresh_token());
+            refreshTokenEntity = tokenService.validateRefreshToken(refreshToken);
             userEntity = refreshTokenEntity.getUserEntity();
             JWTToken = tokenService.generateJWTToken(userEntity);
         } catch (ParseException | JOSEException exception) {
@@ -248,6 +247,20 @@ public class UserService {
                 new Records.SuccessfulAuthResponse(
                         JWTToken,
                         RefreshToken));
+    }
+
+    @Transactional
+    public Records.ApiResponse<Void> Logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenRepository.findByToken(refreshToken).ifPresent(refreshTokenEntity -> {
+                refreshTokenEntity.setToken(tokenService.generateRefreshToken());
+                refreshTokenEntity.setEdited_at(TimeUtil.getCurrentTime());
+                refreshTokenEntity.setExpires_at(TimeUtil.getCurrentTime());
+                refreshTokenRepository.save(refreshTokenEntity);
+            });
+        }
+
+        return Records.ApiResponse.success("Logged out successfully.");
     }
 
     // Reset Password Logic

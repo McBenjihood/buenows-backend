@@ -34,17 +34,16 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
 
-        boolean skip = path.equals("/api/user/auth/login")
+        return path.equals("/api/user/auth/login")
                 || path.equals("/api/user/auth/register")
                 || path.equals("/api/user/auth/refresh")
+                || path.equals("/api/user/auth/logout")
                 || path.equals("/api/user/request-reset-password")
                 || path.equals("/api/user/reset-password")
                 || path.equals("/api/user/request-otp")
                 || path.equals("/api/user/verify-otp")
                 || path.equals("/api/inquiry/contact-submissions")
                 || path.startsWith("/images/");
-
-        return skip;
     }
 
     @Override
@@ -59,7 +58,14 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
+        String accessToken = tokenService.parseTokenFromCookie(
+                request,
+                TokenService.ACCESS_TOKEN_COOKIE
+        );
+
+        if (accessToken == null || accessToken.isBlank()) {
+            accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
+        }
 
         if (accessToken != null && !accessToken.isBlank()) {
             try {

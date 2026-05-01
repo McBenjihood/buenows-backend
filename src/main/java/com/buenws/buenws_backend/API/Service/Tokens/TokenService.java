@@ -15,6 +15,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -25,6 +27,8 @@ import java.util.Optional;
 
 @Service
 public class TokenService {
+    public static final String ACCESS_TOKEN_COOKIE = "access_token";
+    public static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -122,6 +126,20 @@ public class TokenService {
         if(header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }
+        return null;
+    }
+
+    public String parseTokenFromCookie(HttpServletRequest request, String cookieName) {
+        if (request.getCookies() == null) {
+            return null;
+        }
+
+        for (Cookie cookie : request.getCookies()) {
+            if (cookieName.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+
         return null;
     }
 }

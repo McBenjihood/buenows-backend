@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.config.http.SessionCreationPolicy;
 
 import java.util.List;
 
@@ -36,6 +37,10 @@ public class SecurityConfiguration {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
@@ -44,6 +49,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/user/auth/register").permitAll()
                         .requestMatchers("/api/user/auth/login").permitAll()
                         .requestMatchers("/api/user/auth/refresh").permitAll()
+                        .requestMatchers("/api/user/auth/logout").permitAll()
 
                         .requestMatchers("/api/user/reset-password").permitAll()
                         .requestMatchers("/api/user/request-reset-password").permitAll()
