@@ -28,7 +28,7 @@ public class MailUtil {
         this.mailSender = mailSender;
     }
 
-    public boolean SendOTPMail(String recipient, String subject, String newOTP){
+    public boolean SendOTPMail(String recipient, String subject, String newOTP, String first_name){
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
@@ -38,7 +38,9 @@ public class MailUtil {
 
             ClassPathResource resource = new ClassPathResource("templates/otp_template.html");
             String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            helper.setText(htmlTemplate.replace("{{OTP}}", newOTP), true);
+            htmlTemplate = htmlTemplate.replace("{{OTP}}", newOTP);
+            htmlTemplate = htmlTemplate.replace("{{first_name}}", first_name);
+            helper.setText(htmlTemplate, true);
 
             mailSender.send(message);
             return true;

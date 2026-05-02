@@ -280,7 +280,7 @@ public class UserService {
             resetCodeEntity.setAttempts(0);
 
             mailUtil.SendOTPMail(initResetPasswordRequest.email(), "Confirming Identity to change your Password.",
-                    plainOTP);
+                    plainOTP, user.getFirst_name());
 
             resetCodeRepository.save(resetCodeEntity);
         } catch (InvalidUserException e) {
