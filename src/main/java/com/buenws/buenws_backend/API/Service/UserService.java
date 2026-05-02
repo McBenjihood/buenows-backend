@@ -15,6 +15,7 @@ import com.buenws.buenws_backend.Util.MailUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -163,7 +164,7 @@ public class UserService {
                         user));
         try {
             userRepository.save(user);
-        } catch (DuplicateKeyException e) {
+        } catch (DataIntegrityViolationException e) {
             throw new DuplicateUserException(
                     "User with Email: '" + credentialsSubmitRequest.email() + "' already exists", "DUPLICATE_USER");
         }
