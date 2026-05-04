@@ -15,6 +15,7 @@ import com.buenws.buenws_backend.Util.MailUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -163,7 +164,7 @@ public class UserService {
                         user));
         try {
             userRepository.save(user);
-        } catch (DuplicateKeyException e) {
+        } catch (DataIntegrityViolationException e) {
             throw new DuplicateUserException(
                     "User with Email: '" + credentialsSubmitRequest.email() + "' already exists", "DUPLICATE_USER");
         }
@@ -220,15 +221,14 @@ public class UserService {
 
     // RefreshToken Logic
     @Transactional
-    public Records.ApiResponse<Records.SuccessfulAuthResponse> RefreshToken(
-            Records.RefreshTokenRequest refreshTokenRequest) {
+    public Records.ApiResponse<Records.SuccessfulAuthResponse> RefreshToken(String refreshToken) {
 
         RefreshTokenEntity refreshTokenEntity;
         String JWTToken;
         UserEntity userEntity;
 
         try {
-            refreshTokenEntity = tokenService.validateRefreshToken(refreshTokenRequest.refresh_token());
+            refreshTokenEntity = tokenService.validateRefreshToken(refreshToken);
             userEntity = refreshTokenEntity.getUserEntity();
             JWTToken = tokenService.generateJWTToken(userEntity);
         } catch (ParseException | JOSEException exception) {
@@ -250,6 +250,20 @@ public class UserService {
                         RefreshToken));
     }
 
+    @Transactional
+    public Records.ApiResponse<Void> Logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenRepository.findByToken(refreshToken).ifPresent(refreshTokenEntity -> {
+                refreshTokenEntity.setToken(tokenService.generateRefreshToken());
+                refreshTokenEntity.setEdited_at(TimeUtil.getCurrentTime());
+                refreshTokenEntity.setExpires_at(TimeUtil.getCurrentTime());
+                refreshTokenRepository.save(refreshTokenEntity);
+            });
+        }
+
+        return Records.ApiResponse.success("Logged out successfully.");
+    }
+
     // Reset Password Logic
     @Transactional
     public Records.ApiResponse<Void> InitChangePassword(Records.InitResetPasswordRequest initResetPasswordRequest) {
@@ -266,7 +280,7 @@ public class UserService {
             resetCodeEntity.setAttempts(0);
 
             mailUtil.SendOTPMail(initResetPasswordRequest.email(), "Confirming Identity to change your Password.",
-                    plainOTP);
+                    plainOTP, user.getFirst_name());
 
             resetCodeRepository.save(resetCodeEntity);
         } catch (InvalidUserException e) {

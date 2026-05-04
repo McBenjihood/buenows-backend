@@ -30,6 +30,10 @@ public class Records
             String JWT,
             String RefreshToken
     ){}
+    public record AuthCheckResponse(
+            String email,
+            java.util.List<String> authorities
+    ){}
     public record ErrorResponse(
             String errorCode
     ){}
