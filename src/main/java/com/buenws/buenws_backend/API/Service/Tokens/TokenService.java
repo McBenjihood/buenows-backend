@@ -35,7 +35,7 @@ public class TokenService {
     }
 
     //Secret Values sources from secrets.properties
-    @Value("${jwt.secret}")
+    @Value("${JWT_SECRET}")
     private String tokenSecret;
 
     @PostConstruct

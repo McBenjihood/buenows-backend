@@ -44,7 +44,7 @@ public class UserService {
     private final MailUtil mailUtil;
     private final RepositoryRetrieval repositoryRetrieval;
 
-    @Value("${hashing.salt}")
+    @Value("${HASH_SALT}")
     private String salt;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService,

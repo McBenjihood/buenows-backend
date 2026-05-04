@@ -29,7 +29,11 @@
 	<properties>
 		<java.version>21</java.version>
 	</properties>
+
+
 	<dependencies>
+
+
 		<!-- Web & Monitoring: Core Spring Boot web features and health endpoints -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

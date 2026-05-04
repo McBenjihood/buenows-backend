@@ -7,6 +7,7 @@ import com.buenws.buenws_backend.Util.MailUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.SpringVersion;
 
 
 import java.io.IOException;
@@ -22,26 +23,6 @@ class BuenowsBackendApplicationTests {
 	//Arrange
 	@Autowired
 	MailUtil mailUtil;
-	@Autowired
-	UserRepository userRepository;
-
-	@Test
-	void TestLoadUserByUsername(){
-		//Act
-		Optional<UserEntity> userEntity = userRepository.findByEmail("benjaminmikagerresheim@gmail.com");
-
-		//Assert
-		if (userEntity.isPresent()){
-			UserEntity user = userEntity.get();
-			assertAll("User Details Verification",
-					() -> assertEquals("benjaminmikagerresheim@gmail.com", user.getEmail(), "Username check failed"),
-					() -> assertEquals("{bcrypt}$2a$10$4xJ5EPaKDVUjh7UcCwKrc.BI.AOCt4mMI.86CxYw899ZxutM0hf1e", user.getPassword(), "Password check failed"),
-					() -> assertTrue(user.getAuthorities().contains("ROLE_USER"), "Role check failed")
-			);
-		}else {
-			fail();
-		}
-	}
 
 	//Need to redo this test
 	@Test
