@@ -16,7 +16,6 @@ import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -125,7 +124,13 @@ public class UserService {
         UserEntity targetUser = userRepository.findById(userId)
                 .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
 
-        String currentAdminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication currentAuthentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (currentAuthentication == null || currentAuthentication.getName() == null) {
+            throw new InvalidUserException("Current admin could not be identified.", "INVALID_AUTHENTICATION");
+        }
+
+        String currentAdminEmail = currentAuthentication.getName();
 
         if (targetUser.getEmail() != null && targetUser.getEmail().equalsIgnoreCase(currentAdminEmail)) {
             throw new InvalidUserException("You cannot delete your own account.", "SELF_DELETE_NOT_ALLOWED");
@@ -145,13 +150,23 @@ public class UserService {
     @Transactional
     public Records.ApiResponse<Records.SuccessfulAuthResponse> RegisterUserWithCredentials(
             Records.CredentialsSubmitRequest credentialsSubmitRequest) {
+
+        String normalizedEmail = credentialsSubmitRequest.email().trim().toLowerCase();
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new DuplicateUserException(
+                    "User with Email: '" + normalizedEmail + "' already exists",
+                    "DUPLICATE_USER"
+            );
+        }
+
         UserEntity user = new UserEntity();
 
-        user.setFirst_name(credentialsSubmitRequest.first_name());
-        user.setLast_name(credentialsSubmitRequest.last_name());
+        user.setFirst_name(normalizeRequiredText(credentialsSubmitRequest.first_name(), "First name"));
+        user.setLast_name(normalizeRequiredText(credentialsSubmitRequest.last_name(), "Last name"));
 
         user.setAuthorities(new ArrayList<>(List.of("ROLE_USER")));
-        user.setEmail(credentialsSubmitRequest.email());
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(credentialsSubmitRequest.password()));
         user.setRefreshTokenEntity(
                 new RefreshTokenEntity(
@@ -162,11 +177,15 @@ public class UserService {
         user.setResetCodeEntity(
                 new ResetCodeEntity(
                         user));
+
         try {
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
             throw new DuplicateUserException(
-                    "User with Email: '" + credentialsSubmitRequest.email() + "' already exists", "DUPLICATE_USER");
+                    "User with Email: '" + normalizedEmail + "' already exists",
+                    "DUPLICATE_USER",
+                    e
+            );
         }
 
         String JWT;
@@ -177,7 +196,7 @@ public class UserService {
         }
 
         return Records.ApiResponse.success(
-                "User with Email: '" + credentialsSubmitRequest.email() + "' registered successfully",
+                "User with Email: '" + normalizedEmail + "' registered successfully",
                 new Records.SuccessfulAuthResponse(
                         JWT,
                         user.getRefreshTokenEntity().getToken()));
@@ -188,14 +207,16 @@ public class UserService {
     public Records.ApiResponse<Records.SuccessfulAuthResponse> LoginUserWithCredentials(
             Records.CredentialsSubmitRequest credentialsSubmitRequest) {
 
+        String normalizedEmail = credentialsSubmitRequest.email().trim().toLowerCase();
+
         try {
             Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(
-                    credentialsSubmitRequest.email(),
+                    normalizedEmail,
                     credentialsSubmitRequest.password());
 
             authenticationManager.authenticate(authenticationRequest);
 
-            UserEntity user = repositoryRetrieval.getUserEntityFromEmail(credentialsSubmitRequest.email());
+            UserEntity user = repositoryRetrieval.getUserEntityFromEmail(normalizedEmail);
 
             String JWTToken;
             try {
@@ -283,8 +304,8 @@ public class UserService {
                     plainOTP, user.getFirst_name());
 
             resetCodeRepository.save(resetCodeEntity);
-        } catch (InvalidUserException e) {
-        }
+        } catch (InvalidUserException ignored) {
+    }
 
         return Records.ApiResponse.success(
                 "If an account exists, an email to reset your password has been sent.");
@@ -383,5 +404,13 @@ public class UserService {
 
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeRequiredText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new InvalidUserException(fieldName + " must not be empty.", "INVALID_USER");
+        }
+
+        return value.trim();
     }
 }

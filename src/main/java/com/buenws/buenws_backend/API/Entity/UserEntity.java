@@ -32,7 +32,7 @@ public class UserEntity {
     @Column(name = "authority")
     private List<String> authorities;
 
-    @Column(name = "email")
+    @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
     @Column(name = "first_name")
