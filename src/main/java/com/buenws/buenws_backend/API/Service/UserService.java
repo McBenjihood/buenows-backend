@@ -342,7 +342,7 @@ public class UserService {
             ResetCodeEntity resetCodeEntity = repositoryRetrieval
                     .getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
 
-            if (TimeUtil.getCurrentTime().isBefore(resetCodeEntity.getExpires_at())) {
+            if (TimeUtil.getCurrentTime().isBefore(resetCodeEntity.getExpires_at()) && resetCodeEntity.getActive()) {
                 UserEntity user = resetCodeEntity.getUserEntity();
                 user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
 
