@@ -9,6 +9,7 @@ import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -43,7 +44,7 @@ public class UserController {
 
     //Password changes
     @PostMapping("request-otp")
-    public ResponseEntity<Records.ApiResponse<Void>> InitChangePassword(@RequestBody Records.InitResetPasswordRequest initResetPasswordRequest){
+    public ResponseEntity<Records.ApiResponse<Void>> InitChangePassword(@Valid @RequestBody Records.InitResetPasswordRequest initResetPasswordRequest){
         if (getBucket("request-otp").tryConsume(10)) {
             return ResponseEntity.ok(userService.InitChangePassword(initResetPasswordRequest));
         }
@@ -51,7 +52,7 @@ public class UserController {
     }
 
     @PostMapping("verify-otp")
-    public ResponseEntity<Records.ApiResponse<Records.VerifyOTPResponse>> VerifyOTP(@RequestBody Records.VerifyOTPRequest verifyOTPRequest){
+    public ResponseEntity<Records.ApiResponse<Records.VerifyOTPResponse>> VerifyOTP(@Valid @RequestBody Records.VerifyOTPRequest verifyOTPRequest){
         if (getBucket("verify-otp").tryConsume(5)) {
             return ResponseEntity.ok(userService.VerifyOTP(verifyOTPRequest));
         }
@@ -59,7 +60,7 @@ public class UserController {
     }
 
     @PostMapping("change-password")
-    public ResponseEntity<Records.ApiResponse<Void>> ChangePassword(@RequestBody Records.ChangePasswordRequest changePasswordRequest){
+    public ResponseEntity<Records.ApiResponse<Void>> ChangePassword(@Valid @RequestBody Records.ChangePasswordRequest changePasswordRequest){
         if (getBucket("change-password").tryConsume(12)) {
             return ResponseEntity.ok(userService.ChangePassword(changePasswordRequest));
         }
@@ -87,7 +88,7 @@ public class UserController {
 
     @PostMapping("auth/register")
     public ResponseEntity<Records.ApiResponse<Records.SuccessfulAuthResponse>> registerUser(
-            @RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest,
+            @Valid @RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest,
             HttpServletResponse response
     ) {
         if (getBucket("auth/register").tryConsume(20)) {
@@ -103,7 +104,7 @@ public class UserController {
 
     @PostMapping("auth/login")
     public ResponseEntity<Records.ApiResponse<Void>> loginUser(
-            @RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest,
+            @Valid @RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest,
             HttpServletResponse response
     ) {
         if (getBucket("auth/login").tryConsume(10)) {

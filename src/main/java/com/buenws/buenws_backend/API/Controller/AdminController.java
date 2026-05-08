@@ -6,6 +6,7 @@ import com.buenws.buenws_backend.API.Service.UserService;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -75,7 +76,7 @@ public class AdminController {
     @PutMapping("/users/{userId}/role")
     public ResponseEntity<Records.ApiResponse<Records.AdminUserResponse>> updateUserRole(
             @PathVariable UUID userId,
-            @RequestBody Records.AdminUpdateRoleRequest request
+            @Valid @RequestBody Records.AdminUpdateRoleRequest request
     ) {
         if (getBucket("users/update-role").tryConsume(15)) {
             return ResponseEntity.ok(userService.updateUserRole(userId, request));
@@ -86,7 +87,7 @@ public class AdminController {
     @PutMapping("/users/{userId}/profile")
     public ResponseEntity<Records.ApiResponse<Records.AdminUserResponse>> updateUserProfile(
             @PathVariable UUID userId,
-            @RequestBody Records.AdminUpdateUserProfileRequest request
+            @Valid @RequestBody Records.AdminUpdateUserProfileRequest request
     ) {
         if (getBucket("users/update-profile").tryConsume(15)) {
             return ResponseEntity.ok(userService.updateUserProfile(userId, request));

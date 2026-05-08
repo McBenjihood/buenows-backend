@@ -5,6 +5,7 @@ import com.buenws.buenws_backend.API.Service.InquiryService;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,7 +36,7 @@ public class InquiryController {
 
     //Contact Form Submission
     @PostMapping("/contact-submissions")
-    public ResponseEntity<Records.ApiResponse<Void>> submitContactForm(@RequestBody Records.FormSubmissionRequest formSubmissionRequest) {
+    public ResponseEntity<Records.ApiResponse<Void>> submitContactForm(@Valid @RequestBody Records.FormSubmissionRequest formSubmissionRequest) {
         if (getBucket("contact-submissions").tryConsume(10)) {
             return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequest));
         }

@@ -1,5 +1,6 @@
 package com.buenws.buenws_backend.API.Records;
 
+import jakarta.validation.constraints.*;
 import java.lang.reflect.Array;
 
 public class Records
@@ -61,37 +62,66 @@ public class Records
             String created_at
     ){}
     public record AdminUpdateRoleRequest(
+            @NotBlank(message = "Role is required")
             String role
     ){}
     public record AdminUpdateUserProfileRequest(
+            @NotBlank(message = "First name is required")
+            @Size(max = 50)
             String first_name,
+            @NotBlank(message = "Last name is required")
+            @Size(max = 50)
             String last_name
     ){}
 
     //Requests
     public record FormSubmissionRequest(
+            @NotBlank(message = "Email is required")
+            @Email(message = "Invalid email format")
             String email,
+            @NotBlank(message = "Title is required")
+            @Size(min = 3, max = 100, message = "Title must be between 3 and 100 characters")
             String title,
+            @NotBlank(message = "Message is required")
+            @Size(min = 10, max = 2000, message = "Message must be between 10 and 2000 characters")
             String message
     ){}
     public record CredentialsSubmitRequest(
+            @NotBlank(message = "Email is required")
+            @Email(message = "Invalid email format")
             String email,
+            @NotBlank(message = "First name is required")
+            @Size(max = 50)
             String first_name,
+            @NotBlank(message = "Last name is required")
+            @Size(max = 50)
             String last_name,
+            @NotBlank(message = "Password is required")
+            @Size(min = 8, message = "Password must be at least 8 characters long")
             String password
     ){}
     public record RefreshTokenRequest(
+            @NotBlank(message = "Refresh token is required")
             String refresh_token
     ){}
     public record InitResetPasswordRequest(
+            @NotBlank(message = "Email is required")
+            @Email(message = "Invalid email format")
             String email
     ){}
     public record VerifyOTPRequest(
+            @NotBlank(message = "Email is required")
+            @Email(message = "Invalid email format")
             String email,
+            @NotBlank(message = "OTP is required")
+            @Size(min = 6, max = 6, message = "OTP must be 6 characters")
             String otp
     ){}
     public record ChangePasswordRequest(
+            @NotBlank(message = "Password is required")
+            @Size(min = 8, message = "Password must be at least 8 characters long")
             String password,
+            @NotBlank(message = "Verified token is required")
             String verified_token
     ){}
 
