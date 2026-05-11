@@ -25,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Ref;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -170,7 +171,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(credentialsSubmitRequest.password()));
         user.setRefreshTokenEntity(
                 new RefreshTokenEntity(
-                        tokenService.generateRefreshToken(),
+                        CryptographyUtil.HashString(tokenService.generateRefreshToken(), salt),
                         TimeUtil.getCurrentTime(),
                         TimeUtil.getWeekFromNow(),
                         user));
@@ -226,7 +227,7 @@ public class UserService {
             }
 
             String refreshToken = tokenService.generateRefreshToken();
-            user.getRefreshTokenEntity().setToken(refreshToken);
+            user.getRefreshTokenEntity().setToken(CryptographyUtil.HashString(refreshToken, salt) );
             userRepository.save(user);
 
             return Records.ApiResponse.success(
@@ -258,7 +259,7 @@ public class UserService {
 
         String RefreshToken = tokenService.generateRefreshToken();
 
-        refreshTokenEntity.setToken(RefreshToken);
+        refreshTokenEntity.setToken(CryptographyUtil.HashString(RefreshToken, salt));
         refreshTokenEntity.setEdited_at(TimeUtil.getCurrentTime());
         refreshTokenEntity.setExpires_at(TimeUtil.getWeekFromNow());
 
@@ -272,14 +273,14 @@ public class UserService {
     }
 
     @Transactional
-    public Records.ApiResponse<Void> Logout(String refreshToken) {
-        if (refreshToken != null && !refreshToken.isBlank()) {
-            refreshTokenRepository.findByToken(refreshToken).ifPresent(refreshTokenEntity -> {
-                refreshTokenEntity.setToken(tokenService.generateRefreshToken());
-                refreshTokenEntity.setEdited_at(TimeUtil.getCurrentTime());
-                refreshTokenEntity.setExpires_at(TimeUtil.getCurrentTime());
-                refreshTokenRepository.save(refreshTokenEntity);
-            });
+    public Records.ApiResponse<Void> Logout(String jwt) {
+        if (jwt != null && !jwt.isBlank()) {
+            UserEntity user =  repositoryRetrieval.getUserEntityFromToken(jwt);
+            RefreshTokenEntity refreshTokenEntity = user.getRefreshTokenEntity();
+            refreshTokenEntity.setToken(tokenService.generateRefreshToken());
+            refreshTokenEntity.setEdited_at(TimeUtil.getCurrentTime());
+            refreshTokenEntity.setExpires_at(TimeUtil.getCurrentTime());
+            refreshTokenRepository.save(refreshTokenEntity);
         }
 
         return Records.ApiResponse.success("Logged out successfully.");
@@ -321,12 +322,12 @@ public class UserService {
             resetCodeEntity.setAttempts(currentAttempts + 1);
 
             if (resetCodeEntity.getActive() && Objects.equals(resetCodeEntity.getReset_code(), CryptographyUtil.HashString(verifyOTPRequest.otp(), salt))) {
-                String verified_token = UUID.randomUUID().toString();
+                UUID verified_token = UUID.randomUUID();
                 resetCodeEntity.setVerified_token(verified_token);
 
                 resetCodeRepository.save(resetCodeEntity);
                 return Records.ApiResponse.success("OTP verified.", new Records.VerifyOTPResponse(
-                        verified_token));
+                        verified_token.toString()));
             }
         } else {
             resetCodeEntity.setActive(false);
@@ -347,7 +348,7 @@ public class UserService {
                 user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
 
                 resetCodeEntity.setActive(false);
-                resetCodeEntity.setVerified_token("");
+                resetCodeEntity.setVerified_token(null);
                 resetCodeEntity.setExpires_at(TimeUtil.getCurrentTime());
                 resetCodeEntity.setAttempts(0);
 

@@ -24,12 +24,14 @@ public class RefreshTokenEntity {
     }
 
     //Columns
-    @Column(name = "token")
-    private String token;
 
     @Id
-    @Column(name = "user_id")
-    private UUID user_id;
+    @GeneratedValue
+    @Column(name = "token_id")
+    Long token_id;
+
+    @Column(name = "token")
+    private String token;
 
     @Column(name = "created_at")
     private Instant created_at;
@@ -38,14 +40,10 @@ public class RefreshTokenEntity {
     private Instant expires_at;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
     @JoinColumn(name = "user_id")
     private UserEntity userEntity;
 
     // Getters / Setters
-    public UUID getId() {
-        return user_id;
-    }
 
     public String getToken() {
         return token;

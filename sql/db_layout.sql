@@ -53,7 +53,7 @@ CREATE TABLE reset_codes (
                             reset_code VARCHAR(10) NOT NULL,
                             attempts INTEGER NOT NULL DEFAULT 4,
                             active BOOLEAN NULL DEFAULT FALSE,
-                              verified_token VARCHAR(16) UNIQUE DEFAULT FALSE ,
+                              verified_token uuid DEFAULT NULL,
                               updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                               expires_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP + INTERVAL '15 minutes',
                               CONSTRAINT fk_refresh_tokens_users FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE

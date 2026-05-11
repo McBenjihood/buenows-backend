@@ -142,9 +142,9 @@ public class UserController {
             HttpServletResponse response
     ) {
         if (getBucket("auth/logout").tryConsume(1)) {
-            String refreshToken = SecureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
+            String jwt = SecureCookieUtil.getTokenFromCookie(request, TokenService.ACCESS_TOKEN_COOKIE);
 
-            Records.ApiResponse<Void> logoutResponse = userService.Logout(refreshToken);
+            Records.ApiResponse<Void> logoutResponse = userService.Logout(jwt);
 
             SecureCookieUtil.clearAuthCookies(response);
 

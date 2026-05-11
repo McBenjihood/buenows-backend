@@ -7,6 +7,7 @@ import com.buenws.buenws_backend.API.Exception.Custom.InvalidRefreshTokenExcepti
 import com.buenws.buenws_backend.API.Exception.Custom.ParseTokenException;
 import com.buenws.buenws_backend.API.Repository.Repositories.RefreshTokenRepository;
 import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
+import com.buenws.buenws_backend.Util.CryptographyUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -41,6 +42,9 @@ public class TokenService {
     //Secret Values sources from secrets.properties
     @Value("${JWT_SECRET}")
     private String tokenSecret;
+
+    @Value("${HASH_SALT}")
+    private String salt;
 
     @PostConstruct
     public void init() {
@@ -78,7 +82,7 @@ public class TokenService {
 
     //Methods below validate respective token types and return their matching Entities.
     public RefreshTokenEntity validateRefreshToken(String token) throws ParseException, JOSEException {
-        Optional<RefreshTokenEntity> refreshTokenOptional = refreshTokenRepository.findByToken(token);
+        Optional<RefreshTokenEntity> refreshTokenOptional = refreshTokenRepository.findByToken(CryptographyUtil.HashString(token, salt));
         if (refreshTokenOptional.isPresent()) {
             RefreshTokenEntity refreshTokenEntity = refreshTokenOptional.get();
             if (TimeUtil.getCurrentTime().isBefore(refreshTokenEntity.getExpires_at())) {

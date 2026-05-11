@@ -34,7 +34,7 @@ public class ResetCodeEntity {
     private boolean active;
 
     @Column(name = "verified_token")
-    String verified_token;
+    UUID verified_token;
 
     @Column(name = "updated_at")
     private Instant updated_at;
@@ -90,10 +90,10 @@ public class ResetCodeEntity {
         return active;
     }
 
-    public String getVerified_token() {
+    public UUID getVerified_token() {
         return verified_token;
     }
-    public void setVerified_token(String verified_token) {
+    public void setVerified_token(UUID verified_token) {
         this.verified_token = verified_token;
     }
 }

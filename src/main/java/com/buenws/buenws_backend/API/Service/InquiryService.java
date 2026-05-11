@@ -26,12 +26,17 @@ public class InquiryService {
 
             inquiry.setEmail(formSubmissionRequest.email());
             inquiry.setTitle(formSubmissionRequest.title());
-            inquiry.setMessage(formSubmissionRequest.message());
+            if(formSubmissionRequest.message().length() <= 2000){
+                inquiry.setMessage(formSubmissionRequest.message());
+            }else {
+                throw new InvalidInquiryException("Message is too long.", "INVALID_INQUIRY");
+            }
+
 
             inquiryRepository.save(inquiry);
             return Records.ApiResponse.success("Contact Form was submitted.");
         } catch (Exception e) {
-            throw new InvalidInquiryException("Could not submit inquiry to Database", "INVALID_INQUIRY", e);
+            throw new InvalidInquiryException("Could not submit inquiry.", "INVALID_INQUIRY", e);
         }
     }
 
