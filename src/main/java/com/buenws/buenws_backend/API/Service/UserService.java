@@ -9,6 +9,8 @@ import com.buenws.buenws_backend.API.Repository.Repositories.RefreshTokenReposit
 import com.buenws.buenws_backend.API.Repository.RepositoryRetrieval;
 import com.buenws.buenws_backend.API.Repository.Repositories.ResetCodeRepository;
 import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
+import com.buenws.buenws_backend.API.Service.Authentication.Factors.EmailAuthenticator;
+import com.buenws.buenws_backend.API.Service.Authentication.MultiFactorAuthenticator;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.Util.CryptographyUtil;
 import com.buenws.buenws_backend.Util.MailUtil;
@@ -25,7 +27,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Ref;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,29 +37,30 @@ import java.util.UUID;
 @Service
 public class UserService {
 
+    //Constructor Injection
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenRepository refreshTokenRepository;
     private final ResetCodeRepository resetCodeRepository;
-    private final MailUtil mailUtil;
     private final RepositoryRetrieval repositoryRetrieval;
+    private final MultiFactorAuthenticator emailAuthenticator;
 
     @Value("${HASH_SALT}")
     private String salt;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService,
                        AuthenticationManager authenticationManager, RefreshTokenRepository refreshTokenRepository,
-                       ResetCodeRepository resetCodeRepository, MailUtil mailUtil, RepositoryRetrieval repositoryRetrieval) {
+                       ResetCodeRepository resetCodeRepository, RepositoryRetrieval repositoryRetrieval, MultiFactorAuthenticator emailAuthenticator) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
         this.refreshTokenRepository = refreshTokenRepository;
         this.resetCodeRepository = resetCodeRepository;
-        this.mailUtil = mailUtil;
         this.repositoryRetrieval = repositoryRetrieval;
+        this.emailAuthenticator = emailAuthenticator;
     }
 
     @Transactional(readOnly = true)
@@ -289,74 +291,42 @@ public class UserService {
     // Reset Password Logic
     @Transactional
     public Records.ApiResponse<Void> InitChangePassword(Records.InitResetPasswordRequest initResetPasswordRequest) {
-        try {
-            UserEntity user = repositoryRetrieval.getUserEntityFromEmail(initResetPasswordRequest.email());
-            ResetCodeEntity resetCodeEntity = user.getResetCodeEntity();
-
-            String plainOTP = CryptographyUtil.generateOTP();
-
-            resetCodeEntity.setReset_code(CryptographyUtil.HashString(plainOTP, salt));
-            resetCodeEntity.setActive(true);
-            resetCodeEntity.setUpdated_at(TimeUtil.getCurrentTime());
-            resetCodeEntity.setExpires_at(TimeUtil.get15MinutesFromNow());
-            resetCodeEntity.setAttempts(0);
-
-            mailUtil.SendOTPMail(initResetPasswordRequest.email(), "Confirming Identity to change your Password.",
-                    plainOTP, user.getFirst_name());
-
-            resetCodeRepository.save(resetCodeEntity);
-        } catch (InvalidUserException ignored) {
-    }
-
+        UserEntity user = repositoryRetrieval.getUserEntityFromEmail(initResetPasswordRequest.email());
+        emailAuthenticator.requestFactor(user);
         return Records.ApiResponse.success(
-                "If an account exists, an email to reset your password has been sent.");
+                "If an account exists, an email to reset your password has been sent."
+        );
     }
 
-    @Transactional(noRollbackFor = ResetPasswordException.class)
     public Records.ApiResponse<Records.VerifyOTPResponse> VerifyOTP(Records.VerifyOTPRequest verifyOTPRequest) {
         UserEntity user = repositoryRetrieval.getUserEntityFromEmail(verifyOTPRequest.email());
-        ResetCodeEntity resetCodeEntity = user.getResetCodeEntity();
-        int currentAttempts = resetCodeEntity.getAttempts();
 
-        if (TimeUtil.getCurrentTime().isBefore(resetCodeEntity.getExpires_at()) && currentAttempts < 4) {
-            resetCodeEntity.setAttempts(currentAttempts + 1);
-
-            if (resetCodeEntity.getActive() && Objects.equals(resetCodeEntity.getReset_code(), CryptographyUtil.HashString(verifyOTPRequest.otp(), salt))) {
-                UUID verified_token = UUID.randomUUID();
-                resetCodeEntity.setVerified_token(verified_token);
-
-                resetCodeRepository.save(resetCodeEntity);
-                return Records.ApiResponse.success("OTP verified.", new Records.VerifyOTPResponse(
-                        verified_token.toString()));
-            }
-        } else {
-            resetCodeEntity.setActive(false);
-        }
-
-        resetCodeRepository.save(resetCodeEntity);
-        throw new ResetPasswordException("Couldn't verify Validity of OTP ", "INVALID_OTP");
+        emailAuthenticator.verifyFactor(user, verifyOTPRequest.otp());
+        return Records.ApiResponse.success(
+        "OTP verified.",
+            new Records.VerifyOTPResponse(
+                user.getResetCodeEntity().getVerified_token().toString()
+            )
+        );
     }
 
     @Transactional
     public Records.ApiResponse<Void> ChangePassword(Records.ChangePasswordRequest changePasswordRequest) {
-        if (changePasswordRequest.verified_token() != null && !changePasswordRequest.verified_token().isEmpty()) {
-            ResetCodeEntity resetCodeEntity = repositoryRetrieval
-                    .getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
+        ResetCodeEntity resetCodeEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
 
-            if (TimeUtil.getCurrentTime().isBefore(resetCodeEntity.getExpires_at()) && resetCodeEntity.getActive()) {
-                UserEntity user = resetCodeEntity.getUserEntity();
-                user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
+        if (TimeUtil.getCurrentTime().isBefore(resetCodeEntity.getExpires_at()) && resetCodeEntity.getActive()) {
+            UserEntity user = resetCodeEntity.getUserEntity();
+            user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
 
-                resetCodeEntity.setActive(false);
-                resetCodeEntity.setVerified_token(null);
-                resetCodeEntity.setExpires_at(TimeUtil.getCurrentTime());
-                resetCodeEntity.setAttempts(0);
+            resetCodeEntity.setActive(false);
+            resetCodeEntity.setVerified_token(null);
+            resetCodeEntity.setExpires_at(TimeUtil.getCurrentTime());
+            resetCodeEntity.setAttempts(0);
 
-                resetCodeRepository.save(resetCodeEntity);
-                userRepository.save(user);
+            resetCodeRepository.save(resetCodeEntity);
+            userRepository.save(user);
 
-                return Records.ApiResponse.success("Password was successfully changed.");
-            }
+            return Records.ApiResponse.success("Password was successfully changed.");
         }
         throw new ResetPasswordException("Password couldn't be changed", "INVALID_OTP");
     }

@@ -31,11 +31,9 @@ public class TokenService {
     public static final String ACCESS_TOKEN_COOKIE = "access_token";
     public static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
-    private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    public TokenService(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository) {
-        this.userRepository = userRepository;
+    public TokenService(RefreshTokenRepository refreshTokenRepository) {
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
