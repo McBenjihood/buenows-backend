@@ -65,8 +65,8 @@ public class UserController {
             return ResponseEntity.ok(userService.ChangePassword(changePasswordRequest));
         }
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-
     }
+
 
     //Auth Endpoints
     @GetMapping("auth")
@@ -88,7 +88,7 @@ public class UserController {
 
     @PostMapping("auth/register")
     public ResponseEntity<Records.ApiResponse<Records.SuccessfulAuthResponse>> registerUser(
-            @Valid @RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest,
+            @Valid @RequestBody Records.RegisterCredentialsSubmitRequest credentialsSubmitRequest,
             HttpServletResponse response
     ) {
         if (getBucket("auth/register").tryConsume(20)) {

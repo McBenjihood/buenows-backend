@@ -1,20 +1,19 @@
 package com.buenws.buenws_backend.API.Entity;
 
-import com.buenws.buenws_backend.Util.TimeUtil;
 import jakarta.persistence.*;
-import org.springframework.security.core.userdetails.User;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "reset_codes")
-public class ResetCodeEntity {
+@Table(name = "otp_auth")
+public class OTPAuthEntity {
 
-    public ResetCodeEntity(){}
+    public OTPAuthEntity(){}
 
-    public ResetCodeEntity(UserEntity userEntity){
-        this.reset_code = "";
+    public OTPAuthEntity(UserEntity userEntity){
+        this.otp_code = "";
         this.verified_token = null;
         this.userEntity = userEntity;
     }
@@ -24,8 +23,8 @@ public class ResetCodeEntity {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "reset_code")
-    private String reset_code;
+    @Column(name = "otp_code")
+    private String otp_code;
 
     @Column(name = "attempts")
     private int attempts;
@@ -42,6 +41,9 @@ public class ResetCodeEntity {
     @Column(name = "expires_at")
     private Instant expires_at;
 
+    @Column(name = "cooldown")
+    private Instant cooldown;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private UserEntity userEntity;
@@ -55,11 +57,11 @@ public class ResetCodeEntity {
     }
 
     //Getters & Setters
-    public String getReset_code() {
-        return reset_code;
+    public String getOtp_code() {
+        return otp_code;
     }
-    public void setReset_code(String reset_code) {
-        this.reset_code = reset_code;
+    public void setOtp_code(String reset_code) {
+        this.otp_code = reset_code;
     }
 
     public int getAttempts() {
@@ -88,6 +90,13 @@ public class ResetCodeEntity {
     }
     public boolean getActive() {
         return active;
+    }
+
+    public Instant getCooldown() {
+        return cooldown;
+    }
+    public void setCooldown(Instant cooldown) {
+        this.cooldown = cooldown;
     }
 
     public UUID getVerified_token() {

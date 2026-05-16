@@ -2,6 +2,7 @@ package com.buenws.buenws_backend.API.Records;
 
 import jakarta.validation.constraints.*;
 import java.lang.reflect.Array;
+import java.util.UUID;
 
 public class Records
 {
@@ -86,7 +87,8 @@ public class Records
             @Size(min = 10, max = 2000, message = "Message must be between 10 and 2000 characters")
             String message
     ){}
-    public record CredentialsSubmitRequest(
+
+    public record RegisterCredentialsSubmitRequest(
             @NotBlank(message = "Email is required")
             @Email(message = "Invalid email format")
             String email,
@@ -96,6 +98,15 @@ public class Records
             @NotBlank(message = "Last name is required")
             @Size(max = 50)
             String last_name,
+            @NotBlank(message = "Password is required")
+            @Size(min = 8, message = "Password must be at least 8 characters long")
+            String password
+
+    ){}
+    public record CredentialsSubmitRequest(
+            @NotBlank(message = "Email is required")
+            @Email(message = "Invalid email format")
+            String email,
             @NotBlank(message = "Password is required")
             @Size(min = 8, message = "Password must be at least 8 characters long")
             String password
@@ -121,8 +132,8 @@ public class Records
             @NotBlank(message = "Password is required")
             @Size(min = 8, message = "Password must be at least 8 characters long")
             String password,
-            @NotBlank(message = "Verified token is required")
-            String verified_token
+            @NotNull(message = "UUID must not be null")
+            UUID verified_token
     ){}
 
     //Image Stuff (Not ready yet.)

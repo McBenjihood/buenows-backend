@@ -9,10 +9,12 @@ public class TimeUtil {
     public static Instant get15MinutesFromNow(){
         return Instant.now().plusMillis(900 * 1000);
     }
+    public static Instant get5MinutesBeforeNow(){return Instant.now().minusMillis(300 * 1000);}
     public static Instant getHourFromNow(){
         return Instant.now().plusMillis(3600 * 1000);
     }
     public static Instant getWeekFromNow(){
         return Instant.now().plusMillis(604800 * 1000);
     }
+    public static Instant get5MinutesAfterNow(){return Instant.now().plusMillis(300 * 1000);}
 }

@@ -1,7 +1,7 @@
 package com.buenws.buenws_backend.API.Service;
 
 import com.buenws.buenws_backend.API.Entity.RefreshTokenEntity;
-import com.buenws.buenws_backend.API.Entity.ResetCodeEntity;
+import com.buenws.buenws_backend.API.Entity.OTPAuthEntity;
 import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.*;
 import com.buenws.buenws_backend.API.Records.Records;
@@ -9,11 +9,9 @@ import com.buenws.buenws_backend.API.Repository.Repositories.RefreshTokenReposit
 import com.buenws.buenws_backend.API.Repository.RepositoryRetrieval;
 import com.buenws.buenws_backend.API.Repository.Repositories.ResetCodeRepository;
 import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
-import com.buenws.buenws_backend.API.Service.Authentication.Factors.EmailAuthenticator;
 import com.buenws.buenws_backend.API.Service.Authentication.MultiFactorAuthenticator;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.Util.CryptographyUtil;
-import com.buenws.buenws_backend.Util.MailUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +29,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -152,7 +149,7 @@ public class UserService {
 
     @Transactional
     public Records.ApiResponse<Records.SuccessfulAuthResponse> RegisterUserWithCredentials(
-            Records.CredentialsSubmitRequest credentialsSubmitRequest) {
+            Records.RegisterCredentialsSubmitRequest credentialsSubmitRequest) {
 
         String normalizedEmail = credentialsSubmitRequest.email().trim().toLowerCase();
 
@@ -176,10 +173,14 @@ public class UserService {
                         CryptographyUtil.HashString(tokenService.generateRefreshToken(), salt),
                         TimeUtil.getCurrentTime(),
                         TimeUtil.getWeekFromNow(),
-                        user));
+                        user
+                )
+        );
         user.setResetCodeEntity(
-                new ResetCodeEntity(
-                        user));
+                new OTPAuthEntity(
+                        user
+                )
+        );
 
         try {
             userRepository.save(user);
@@ -312,18 +313,20 @@ public class UserService {
 
     @Transactional
     public Records.ApiResponse<Void> ChangePassword(Records.ChangePasswordRequest changePasswordRequest) {
-        ResetCodeEntity resetCodeEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
+        OTPAuthEntity OTPAuthEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
 
-        if (TimeUtil.getCurrentTime().isBefore(resetCodeEntity.getExpires_at()) && resetCodeEntity.getActive()) {
-            UserEntity user = resetCodeEntity.getUserEntity();
+        if (emailAuthenticator.checkFactorVerification(OTPAuthEntity)) {
+            UserEntity user = OTPAuthEntity.getUserEntity();
+
             user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
 
-            resetCodeEntity.setActive(false);
-            resetCodeEntity.setVerified_token(null);
-            resetCodeEntity.setExpires_at(TimeUtil.getCurrentTime());
-            resetCodeEntity.setAttempts(0);
+            OTPAuthEntity.setOtp_code(null);
+            OTPAuthEntity.setAttempts(4);
+            OTPAuthEntity.setActive(false);
+            OTPAuthEntity.setVerified_token(null);
+            OTPAuthEntity.setExpires_at(TimeUtil.get5MinutesBeforeNow());
 
-            resetCodeRepository.save(resetCodeEntity);
+            resetCodeRepository.save(OTPAuthEntity);
             userRepository.save(user);
 
             return Records.ApiResponse.success("Password was successfully changed.");
