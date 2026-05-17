@@ -50,9 +50,6 @@ public class UserEntity {
     @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private RefreshTokenEntity refreshTokenEntity;
 
-    @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private OTPAuthEntity OTPAuthEntity;
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<UserAssetEntity> userAssets;
 
@@ -114,10 +111,4 @@ public class UserEntity {
         this.userAssets = userAssets;
     }
 
-    public OTPAuthEntity getResetCodeEntity() {
-        return OTPAuthEntity;
-    }
-    public void setResetCodeEntity(OTPAuthEntity OTPAuthEntity) {
-        this.OTPAuthEntity = OTPAuthEntity;
-    }
 }

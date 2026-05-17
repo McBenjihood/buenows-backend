@@ -7,9 +7,8 @@ import com.buenws.buenws_backend.API.Exception.Custom.*;
 import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.RefreshTokenRepository;
 import com.buenws.buenws_backend.API.Repository.RepositoryRetrieval;
-import com.buenws.buenws_backend.API.Repository.Repositories.ResetCodeRepository;
+import com.buenws.buenws_backend.API.Repository.Repositories.OTPAuthRepository;
 import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
-import com.buenws.buenws_backend.API.Service.Authentication.MultiFactorAuthenticator;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.Util.CryptographyUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
@@ -40,170 +39,79 @@ public class UserService {
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final ResetCodeRepository resetCodeRepository;
+    private final OTPAuthRepository OTPAuthRepository;
     private final RepositoryRetrieval repositoryRetrieval;
-    private final MultiFactorAuthenticator emailAuthenticator;
+    private final OTPAuthService otpAuthService;
 
     @Value("${HASH_SALT}")
     private String salt;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService,
                        AuthenticationManager authenticationManager, RefreshTokenRepository refreshTokenRepository,
-                       ResetCodeRepository resetCodeRepository, RepositoryRetrieval repositoryRetrieval, MultiFactorAuthenticator emailAuthenticator) {
+                       OTPAuthRepository OTPAuthRepository, RepositoryRetrieval repositoryRetrieval, OTPAuthService otpAuthService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.resetCodeRepository = resetCodeRepository;
+        this.OTPAuthRepository = OTPAuthRepository;
         this.repositoryRetrieval = repositoryRetrieval;
-        this.emailAuthenticator = emailAuthenticator;
-    }
-
-    @Transactional(readOnly = true)
-    public Records.ApiResponse<List<Records.AdminUserResponse>> getAllUsersForAdmin() {
-        List<Records.AdminUserResponse> users = userRepository.findAll().stream()
-                .sorted(Comparator.comparing(UserEntity::getCreated_at).reversed())
-                .map(this::mapAdminUser)
-                .toList();
-
-        return Records.ApiResponse.success("Users loaded successfully.", users);
-    }
-
-    @Transactional
-    public Records.ApiResponse<Records.AdminUserResponse> updateUserRole(
-            UUID userId,
-            Records.AdminUpdateRoleRequest request
-    ) {
-        UserEntity targetUser = userRepository.findById(userId)
-                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
-
-        String normalizedRole = normalizeRole(request.role());
-
-        if (!normalizedRole.equals("ROLE_USER") && !normalizedRole.equals("ROLE_ADMIN")) {
-            throw new InvalidUserException("Role is not supported.", "INVALID_ROLE");
-        }
-
-        if (targetUser.getAuthorities() != null
-                && targetUser.getAuthorities().contains("ROLE_ADMIN")
-                && normalizedRole.equals("ROLE_USER")
-                && isLastAdmin(targetUser)) {
-            throw new InvalidUserException("The last admin cannot be downgraded.", "LAST_ADMIN_PROTECTED");
-        }
-
-        targetUser.setAuthorities(new ArrayList<>(List.of(normalizedRole)));
-        userRepository.save(targetUser);
-
-        return Records.ApiResponse.success(
-                "User role updated successfully.",
-                mapAdminUser(targetUser)
-        );
-    }
-
-    @Transactional
-    public Records.ApiResponse<Records.AdminUserResponse> updateUserProfile(
-            UUID userId,
-            Records.AdminUpdateUserProfileRequest request
-    ) {
-        UserEntity targetUser = userRepository.findById(userId)
-                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
-
-        targetUser.setFirst_name(normalizeOptionalText(request.first_name()));
-        targetUser.setLast_name(normalizeOptionalText(request.last_name()));
-
-        userRepository.save(targetUser);
-
-        return Records.ApiResponse.success(
-                "User profile updated successfully.",
-                mapAdminUser(targetUser)
-        );
-    }
-
-    @Transactional
-    public Records.ApiResponse<Void> deleteUserForAdmin(UUID userId) {
-        UserEntity targetUser = userRepository.findById(userId)
-                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
-
-        Authentication currentAuthentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (currentAuthentication == null || currentAuthentication.getName() == null) {
-            throw new InvalidUserException("Current admin could not be identified.", "INVALID_AUTHENTICATION");
-        }
-
-        String currentAdminEmail = currentAuthentication.getName();
-
-        if (targetUser.getEmail() != null && targetUser.getEmail().equalsIgnoreCase(currentAdminEmail)) {
-            throw new InvalidUserException("You cannot delete your own account.", "SELF_DELETE_NOT_ALLOWED");
-        }
-
-        if (targetUser.getAuthorities() != null
-                && targetUser.getAuthorities().contains("ROLE_ADMIN")
-                && isLastAdmin(targetUser)) {
-            throw new InvalidUserException("The last admin cannot be deleted.", "LAST_ADMIN_PROTECTED");
-        }
-
-        userRepository.delete(targetUser);
-
-        return Records.ApiResponse.success("User deleted successfully.");
+        this.otpAuthService = otpAuthService;
     }
 
     @Transactional
     public Records.ApiResponse<Records.SuccessfulAuthResponse> RegisterUserWithCredentials(
             Records.RegisterCredentialsSubmitRequest credentialsSubmitRequest) {
 
-        String normalizedEmail = credentialsSubmitRequest.email().trim().toLowerCase();
+        OTPAuthEntity otpAuthEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(credentialsSubmitRequest.verified_token());
+        if (otpAuthService.checkOTPAuthEntity(otpAuthEntity)){
+            otpAuthService.disableFactor(otpAuthEntity);
+            String normalizedEmail = otpAuthEntity.getContact().trim().toLowerCase();
 
-        if (userRepository.existsByEmail(normalizedEmail)) {
-            throw new DuplicateUserException(
-                    "User with Email: '" + normalizedEmail + "' already exists",
-                    "DUPLICATE_USER"
+            UserEntity user = new UserEntity();
+
+            user.setFirst_name(normalizeRequiredText(credentialsSubmitRequest.first_name(), "First name"));
+            user.setLast_name(normalizeRequiredText(credentialsSubmitRequest.last_name(), "Last name"));
+
+            user.setAuthorities(new ArrayList<>(List.of("ROLE_USER")));
+            user.setEmail(normalizedEmail);
+            user.setPassword(passwordEncoder.encode(credentialsSubmitRequest.password()));
+            user.setRefreshTokenEntity(
+                    new RefreshTokenEntity(
+                            CryptographyUtil.HashString(tokenService.generateRefreshToken(), salt),
+                            TimeUtil.getCurrentTime(),
+                            TimeUtil.getWeekFromNow(),
+                            user
+                    )
             );
+
+            try {
+
+                userRepository.save(user);
+            } catch (DataIntegrityViolationException e) {
+                throw new DuplicateUserException(
+                        "User with Email: '" + normalizedEmail + "' already exists",
+                        "DUPLICATE_USER",
+                        e
+                );
+            }
+
+            String JWT;
+            try {
+                JWT = tokenService.generateJWTToken(user);
+            } catch (JOSEException e) {
+                throw new GenerateTokenException("Error login User in. Please try again.", "GENERATE_TOKEN_ERROR");
+            }
+
+            return Records.ApiResponse.success(
+                    "User with Email: '" + normalizedEmail + "' registered successfully",
+                    new Records.SuccessfulAuthResponse(
+                            JWT,
+                            user.getRefreshTokenEntity().getToken()));
+        }else {
+            throw new OTPException("Your Email-Verification couldn't be validated. Please try again.", "INVALID_OTP");
         }
 
-        UserEntity user = new UserEntity();
-
-        user.setFirst_name(normalizeRequiredText(credentialsSubmitRequest.first_name(), "First name"));
-        user.setLast_name(normalizeRequiredText(credentialsSubmitRequest.last_name(), "Last name"));
-
-        user.setAuthorities(new ArrayList<>(List.of("ROLE_USER")));
-        user.setEmail(normalizedEmail);
-        user.setPassword(passwordEncoder.encode(credentialsSubmitRequest.password()));
-        user.setRefreshTokenEntity(
-                new RefreshTokenEntity(
-                        CryptographyUtil.HashString(tokenService.generateRefreshToken(), salt),
-                        TimeUtil.getCurrentTime(),
-                        TimeUtil.getWeekFromNow(),
-                        user
-                )
-        );
-        user.setResetCodeEntity(
-                new OTPAuthEntity(
-                        user
-                )
-        );
-
-        try {
-            userRepository.save(user);
-        } catch (DataIntegrityViolationException e) {
-            throw new DuplicateUserException(
-                    "User with Email: '" + normalizedEmail + "' already exists",
-                    "DUPLICATE_USER",
-                    e
-            );
-        }
-
-        String JWT;
-        try {
-            JWT = tokenService.generateJWTToken(user);
-        } catch (JOSEException e) {
-            throw new GenerateTokenException("Error login User in. Please try again.", "GENERATE_TOKEN_ERROR");
-        }
-
-        return Records.ApiResponse.success(
-                "User with Email: '" + normalizedEmail + "' registered successfully",
-                new Records.SuccessfulAuthResponse(
-                        JWT,
-                        user.getRefreshTokenEntity().getToken()));
     }
 
     // Login Logic
@@ -240,7 +148,7 @@ public class UserService {
                             refreshToken));
 
         } catch (AuthenticationException e) {
-            throw new InvalidUserException("Invalid email or password.", "INVALID_CREDENTIALS");
+            throw new InvalidUserException("Invalid contact or password.", "INVALID_CREDENTIALS");
         }
     }
 
@@ -291,47 +199,121 @@ public class UserService {
 
     // Reset Password Logic
     @Transactional
-    public Records.ApiResponse<Void> InitChangePassword(Records.InitResetPasswordRequest initResetPasswordRequest) {
-        UserEntity user = repositoryRetrieval.getUserEntityFromEmail(initResetPasswordRequest.email());
-        emailAuthenticator.requestFactor(user);
+    public Records.ApiResponse<Void> RequestOTP(Records.RequestOTPRequest requestOTPRequest) {
+        otpAuthService.requestFactor(requestOTPRequest.contact_information());
         return Records.ApiResponse.success(
-                "If an account exists, an email to reset your password has been sent."
+                "If an account exists, an contact to reset your password has been sent."
         );
     }
 
+    @Transactional
     public Records.ApiResponse<Records.VerifyOTPResponse> VerifyOTP(Records.VerifyOTPRequest verifyOTPRequest) {
-        UserEntity user = repositoryRetrieval.getUserEntityFromEmail(verifyOTPRequest.email());
-
-        emailAuthenticator.verifyFactor(user, verifyOTPRequest.otp());
+        UUID verified_token = otpAuthService.verifyFactor(verifyOTPRequest.contact_information(), verifyOTPRequest.otp());
         return Records.ApiResponse.success(
         "OTP verified.",
             new Records.VerifyOTPResponse(
-                user.getResetCodeEntity().getVerified_token().toString()
+                verified_token
             )
         );
     }
 
     @Transactional
     public Records.ApiResponse<Void> ChangePassword(Records.ChangePasswordRequest changePasswordRequest) {
-        OTPAuthEntity OTPAuthEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
+        OTPAuthEntity otpAuthEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
 
-        if (emailAuthenticator.checkFactorVerification(OTPAuthEntity)) {
-            UserEntity user = OTPAuthEntity.getUserEntity();
-
+        if (otpAuthService.checkOTPAuthEntity(otpAuthEntity)) {
+            UserEntity user = repositoryRetrieval.getUserEntityFromEmail(otpAuthEntity.getContact());
             user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
 
-            OTPAuthEntity.setOtp_code(null);
-            OTPAuthEntity.setAttempts(4);
-            OTPAuthEntity.setActive(false);
-            OTPAuthEntity.setVerified_token(null);
-            OTPAuthEntity.setExpires_at(TimeUtil.get5MinutesBeforeNow());
+            otpAuthService.disableFactor(otpAuthEntity);
 
-            resetCodeRepository.save(OTPAuthEntity);
+            OTPAuthRepository.save(otpAuthEntity);
             userRepository.save(user);
 
             return Records.ApiResponse.success("Password was successfully changed.");
         }
         throw new ResetPasswordException("Password couldn't be changed", "INVALID_OTP");
+    }
+
+    @Transactional(readOnly = true)
+    public Records.ApiResponse<List<Records.AdminUserResponse>> getAllUsersForAdmin() {
+        List<Records.AdminUserResponse> users = userRepository.findAll().stream()
+                .sorted(Comparator.comparing(UserEntity::getCreated_at).reversed())
+                .map(this::mapAdminUser)
+                .toList();
+
+        return Records.ApiResponse.success("Users loaded successfully.", users);
+    }
+
+    @Transactional
+    public Records.ApiResponse<Records.AdminUserResponse> updateUserRole(UUID userId, Records.AdminUpdateRoleRequest request) {
+        UserEntity targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
+
+        String normalizedRole = normalizeRole(request.role());
+
+        if (!normalizedRole.equals("ROLE_USER") && !normalizedRole.equals("ROLE_ADMIN")) {
+            throw new InvalidUserException("Role is not supported.", "INVALID_ROLE");
+        }
+
+        if (targetUser.getAuthorities() != null
+                && targetUser.getAuthorities().contains("ROLE_ADMIN")
+                && normalizedRole.equals("ROLE_USER")
+                && isLastAdmin(targetUser)) {
+            throw new InvalidUserException("The last admin cannot be downgraded.", "LAST_ADMIN_PROTECTED");
+        }
+
+        targetUser.setAuthorities(new ArrayList<>(List.of(normalizedRole)));
+        userRepository.save(targetUser);
+
+        return Records.ApiResponse.success(
+                "User role updated successfully.",
+                mapAdminUser(targetUser)
+        );
+    }
+
+    @Transactional
+    public Records.ApiResponse<Records.AdminUserResponse> updateUserProfile(UUID userId, Records.AdminUpdateUserProfileRequest request) {
+        UserEntity targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
+
+        targetUser.setFirst_name(normalizeOptionalText(request.first_name()));
+        targetUser.setLast_name(normalizeOptionalText(request.last_name()));
+
+        userRepository.save(targetUser);
+
+        return Records.ApiResponse.success(
+                "User profile updated successfully.",
+                mapAdminUser(targetUser)
+        );
+    }
+
+    @Transactional
+    public Records.ApiResponse<Void> deleteUserForAdmin(UUID userId) {
+        UserEntity targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
+
+        Authentication currentAuthentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (currentAuthentication == null || currentAuthentication.getName() == null) {
+            throw new InvalidUserException("Current admin could not be identified.", "INVALID_AUTHENTICATION");
+        }
+
+        String currentAdminEmail = currentAuthentication.getName();
+
+        if (targetUser.getEmail() != null && targetUser.getEmail().equalsIgnoreCase(currentAdminEmail)) {
+            throw new InvalidUserException("You cannot delete your own account.", "SELF_DELETE_NOT_ALLOWED");
+        }
+
+        if (targetUser.getAuthorities() != null
+                && targetUser.getAuthorities().contains("ROLE_ADMIN")
+                && isLastAdmin(targetUser)) {
+            throw new InvalidUserException("The last admin cannot be deleted.", "LAST_ADMIN_PROTECTED");
+        }
+
+        userRepository.delete(targetUser);
+
+        return Records.ApiResponse.success("User deleted successfully.");
     }
 
     private Records.AdminUserResponse mapAdminUser(UserEntity user) {
@@ -344,7 +326,6 @@ public class UserService {
                 user.getCreated_at() != null ? user.getCreated_at().toString() : null
         );
     }
-
     private boolean isLastAdmin(UserEntity user) {
         long adminCount = userRepository.findAll().stream()
                 .filter(existingUser ->
@@ -370,7 +351,6 @@ public class UserService {
 
         return normalizedRole;
     }
-
     private String normalizeOptionalText(String value) {
         if (value == null) {
             return null;
@@ -379,7 +359,6 @@ public class UserService {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
-
     private String normalizeRequiredText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new InvalidUserException(fieldName + " must not be empty.", "INVALID_USER");

@@ -1,5 +1,6 @@
 package com.buenws.buenws_backend.API.Entity;
 
+import com.buenws.buenws_backend.Util.TimeUtil;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -10,12 +11,12 @@ import java.util.UUID;
 @Table(name = "otp_auth")
 public class OTPAuthEntity {
 
-    public OTPAuthEntity(){}
+    public OTPAuthEntity() {
+    }
 
-    public OTPAuthEntity(UserEntity userEntity){
-        this.otp_code = "";
-        this.verified_token = null;
-        this.userEntity = userEntity;
+    public OTPAuthEntity(String contact_information){
+        this.contact = contact_information;
+        this.cooldown = TimeUtil.get5MinutesBeforeNow();
     }
 
     @Id
@@ -35,6 +36,9 @@ public class OTPAuthEntity {
     @Column(name = "verified_token")
     UUID verified_token;
 
+    @Column(name = "contact")
+    String contact;
+
     @Column(name = "updated_at")
     private Instant updated_at;
 
@@ -42,18 +46,18 @@ public class OTPAuthEntity {
     private Instant expires_at;
 
     @Column(name = "cooldown")
-    private Instant cooldown;
+    private Instant cooldown = TimeUtil.get5MinutesBeforeNow();
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private UserEntity userEntity;
-
+    @PrePersist
+    @PreUpdate
+    protected void ensureCooldown() {
+        if (this.cooldown == null) {
+            this.cooldown = TimeUtil.get5MinutesBeforeNow();
+        }
+    }
     //Getters
     public Long getId() {
         return id;
-    }
-    public UserEntity getUserEntity() {
-        return userEntity;
     }
 
     //Getters & Setters
@@ -104,5 +108,13 @@ public class OTPAuthEntity {
     }
     public void setVerified_token(UUID verified_token) {
         this.verified_token = verified_token;
+    }
+
+    public String getContact() {
+        return contact;
+    }
+
+    public void setContact(String contact) {
+        this.contact = contact;
     }
 }

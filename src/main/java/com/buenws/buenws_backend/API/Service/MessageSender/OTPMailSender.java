@@ -1,4 +1,4 @@
-package com.buenws.buenws_backend.Util;
+package com.buenws.buenws_backend.API.Service.MessageSender;
 
 import com.buenws.buenws_backend.API.Exception.Custom.MailException;
 import jakarta.mail.MessagingException;
@@ -13,15 +13,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 @Component
-public class MailUtil {
+public class OTPMailSender implements OTPMessageSender {
 
     private final JavaMailSender mailSender;
 
-    public MailUtil(JavaMailSender mailSender) {
+    public OTPMailSender(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-    public boolean SendOTPMail(String recipient, String subject, String newOTP, String first_name) {
+    public boolean SendMessage(String recipient, String subject, String newOTP) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
@@ -29,7 +29,6 @@ public class MailUtil {
             String safeRecipient = recipient == null ? "" : recipient;
             String safeSubject = subject == null ? "Password reset" : subject;
             String safeOTP = newOTP == null ? "" : newOTP;
-            String safeFirstName = first_name == null || first_name.isBlank() ? "there" : first_name;
 
             helper.setTo(safeRecipient);
             helper.setSubject(safeSubject);
@@ -38,7 +37,6 @@ public class MailUtil {
             String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 
             htmlTemplate = htmlTemplate.replace("{{OTP}}", safeOTP);
-            htmlTemplate = htmlTemplate.replace("{{first_name}}", safeFirstName);
 
             helper.setText(htmlTemplate, true);
 

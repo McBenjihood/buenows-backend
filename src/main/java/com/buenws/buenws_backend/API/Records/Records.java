@@ -45,7 +45,7 @@ public class Records
             String url
     ){}
     public record VerifyOTPResponse(
-            String verified_token
+            UUID verified_token
     ){}
     public record InquiryResponse(
             long inquiry_id,
@@ -78,7 +78,7 @@ public class Records
     //Requests
     public record FormSubmissionRequest(
             @NotBlank(message = "Email is required")
-            @Email(message = "Invalid email format")
+            @Email(message = "Invalid contact format")
             String email,
             @NotBlank(message = "Title is required")
             @Size(min = 3, max = 100, message = "Title must be between 3 and 100 characters")
@@ -90,7 +90,7 @@ public class Records
 
     public record RegisterCredentialsSubmitRequest(
             @NotBlank(message = "Email is required")
-            @Email(message = "Invalid email format")
+            @Email(message = "Invalid contact format")
             String email,
             @NotBlank(message = "First name is required")
             @Size(max = 50)
@@ -100,12 +100,13 @@ public class Records
             String last_name,
             @NotBlank(message = "Password is required")
             @Size(min = 8, message = "Password must be at least 8 characters long")
-            String password
-
+            String password,
+            @NotNull(message = "UUID must not be null")
+            UUID verified_token
     ){}
     public record CredentialsSubmitRequest(
             @NotBlank(message = "Email is required")
-            @Email(message = "Invalid email format")
+            @Email(message = "Invalid contact format")
             String email,
             @NotBlank(message = "Password is required")
             @Size(min = 8, message = "Password must be at least 8 characters long")
@@ -115,15 +116,14 @@ public class Records
             @NotBlank(message = "Refresh token is required")
             String refresh_token
     ){}
-    public record InitResetPasswordRequest(
+    public record RequestOTPRequest(
             @NotBlank(message = "Email is required")
-            @Email(message = "Invalid email format")
-            String email
+            String contact_information
     ){}
     public record VerifyOTPRequest(
             @NotBlank(message = "Email is required")
-            @Email(message = "Invalid email format")
-            String email,
+            @Email(message = "Invalid contact format")
+            String contact_information,
             @NotBlank(message = "OTP is required")
             @Size(min = 6, max = 6, message = "OTP must be 6 characters")
             String otp

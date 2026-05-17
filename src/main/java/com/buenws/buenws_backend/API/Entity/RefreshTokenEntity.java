@@ -12,10 +12,6 @@ public class RefreshTokenEntity {
     //Constructors
     public RefreshTokenEntity() {
     }
-    public RefreshTokenEntity(String token, UserEntity userEntity) {
-        this.userEntity = userEntity;
-        this.token = token;
-    }
     public RefreshTokenEntity(String token, Instant created_at, Instant expires_at, UserEntity userEntity) {
         this.token = token;
         this.created_at = created_at;
@@ -26,7 +22,7 @@ public class RefreshTokenEntity {
     //Columns
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "token_id")
     Long token_id;
 

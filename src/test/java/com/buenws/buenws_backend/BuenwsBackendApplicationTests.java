@@ -1,21 +1,14 @@
 package com.buenws.buenws_backend;
 
-import com.buenws.buenws_backend.API.Entity.UserEntity;
-import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
-import com.buenws.buenws_backend.API.Service.UserAssetService;
-import com.buenws.buenws_backend.Util.MailUtil;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.SpringVersion;
 
 
-import java.io.IOException;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -25,23 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class BuenowsBackendApplicationTests {
-
-	//Arrange
-	@Autowired
-	MailUtil mailUtil;
-
-	//Need to redo this test
-	@Test
-	void TestSendOTPMail() throws IOException {
-		//Arrange
-		String recipient = "benjaminmikagerresheim@gmail.com";
-		String subject = "Test Subject";
-		String newOTP = "123456";
-		String first_name = "John";
-
-		//Act & Assert
-		assertTrue(mailUtil.SendOTPMail(recipient, subject, newOTP, first_name));
-	}
 
 	@Test
 	void TestBasicBucket4JRateLimitingFunctionality(){

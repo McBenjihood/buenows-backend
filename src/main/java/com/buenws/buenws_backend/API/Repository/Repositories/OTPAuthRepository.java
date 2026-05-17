@@ -10,7 +10,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface ResetCodeRepository extends JpaRepository<OTPAuthEntity, String> {
+public interface OTPAuthRepository extends JpaRepository<OTPAuthEntity, String> {
     @Query("SELECT r FROM OTPAuthEntity r WHERE r.verified_token = :verifiedToken")
     Optional<OTPAuthEntity> findByVerifiedToken(@Param("verifiedToken") UUID verifiedToken);
+    Optional<OTPAuthEntity> findByContact(String contact_information);
 }

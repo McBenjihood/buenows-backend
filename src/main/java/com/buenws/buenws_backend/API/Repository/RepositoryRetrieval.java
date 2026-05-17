@@ -3,7 +3,7 @@ package com.buenws.buenws_backend.API.Repository;
 import com.buenws.buenws_backend.API.Entity.OTPAuthEntity;
 import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidUserException;
-import com.buenws.buenws_backend.API.Repository.Repositories.ResetCodeRepository;
+import com.buenws.buenws_backend.API.Repository.Repositories.OTPAuthRepository;
 import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import org.springframework.stereotype.Component;
@@ -16,12 +16,12 @@ public class RepositoryRetrieval {
 
     private final TokenService tokenService;
     private final UserRepository userRepository;
-    private final ResetCodeRepository resetCodeRepository;
+    private final OTPAuthRepository OTPAuthRepository;
 
-    public RepositoryRetrieval(TokenService tokenService, UserRepository userRepository, ResetCodeRepository resetCodeRepository) {
+    public RepositoryRetrieval(TokenService tokenService, UserRepository userRepository, OTPAuthRepository OTPAuthRepository) {
         this.tokenService = tokenService;
         this.userRepository = userRepository;
-        this.resetCodeRepository = resetCodeRepository;
+        this.OTPAuthRepository = OTPAuthRepository;
     }
 
     public UserEntity getUserEntityFromToken(String token){
@@ -44,9 +44,18 @@ public class RepositoryRetrieval {
     }
 
     public OTPAuthEntity getResetCodeEntityFromVerified_Token(UUID verified_token){
-        Optional<OTPAuthEntity> resetCodeEntity = resetCodeRepository.findByVerifiedToken(verified_token);
+        Optional<OTPAuthEntity> resetCodeEntity = OTPAuthRepository.findByVerifiedToken(verified_token);
         if(resetCodeEntity.isPresent()){
             return resetCodeEntity.get();
+        }else {
+            throw new InvalidUserException("Error verifying Users token.", "INVALID_USER");
+        }
+    }
+
+    public OTPAuthEntity getResetCodeEntityFromContact_Information(String contact_information){
+        Optional<OTPAuthEntity> resetCodeEntity = OTPAuthRepository.findByContact(contact_information);
+        if (resetCodeEntity.isPresent()){
+            return  resetCodeEntity.get();
         }else {
             throw new InvalidUserException("Error verifying Users token.", "INVALID_USER");
         }

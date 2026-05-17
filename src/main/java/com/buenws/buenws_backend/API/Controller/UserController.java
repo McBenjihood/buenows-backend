@@ -4,23 +4,22 @@ import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.API.Service.UserService;
 import com.buenws.buenws_backend.Util.SecureCookieUtil;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/user")
@@ -29,12 +28,18 @@ public class UserController {
 
     private final UserService userService;
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Cache<String, Bucket> buckets = CacheBuilder.newBuilder()
+            .expireAfterAccess(10, TimeUnit.MINUTES)
+            .build();
 
     private Bucket getBucket(String key) {
-        return buckets.computeIfAbsent(key, k -> Bucket.builder()
-                .addLimit(Bandwidth.classic(60, Refill.intervally(60, Duration.ofMinutes(1))))
-                .build());
+        try {
+            return buckets.get(key, () -> Bucket.builder()
+                    .addLimit(Bandwidth.classic(60, Refill.intervally(60, Duration.ofMinutes(1))))
+                    .build());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public UserController(UserService userService) {
@@ -44,24 +49,33 @@ public class UserController {
 
     //Password changes
     @PostMapping("request-otp")
-    public ResponseEntity<Records.ApiResponse<Void>> InitChangePassword(@Valid @RequestBody Records.InitResetPasswordRequest initResetPasswordRequest){
-        if (getBucket("request-otp").tryConsume(10)) {
-            return ResponseEntity.ok(userService.InitChangePassword(initResetPasswordRequest));
+    public ResponseEntity<Records.ApiResponse<Void>> RequestOTP(@Valid @RequestBody Records.RequestOTPRequest requestOTPRequest, HttpServletRequest request){
+        String ipAddress = request.getRemoteAddr();
+        if (getBucket("request-otp:" + ipAddress ).tryConsume(10)) {
+            return ResponseEntity.ok(userService.RequestOTP(requestOTPRequest));
         }
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
     }
 
     @PostMapping("verify-otp")
-    public ResponseEntity<Records.ApiResponse<Records.VerifyOTPResponse>> VerifyOTP(@Valid @RequestBody Records.VerifyOTPRequest verifyOTPRequest){
-        if (getBucket("verify-otp").tryConsume(5)) {
+    public ResponseEntity<Records.ApiResponse<Records.VerifyOTPResponse>> VerifyOTP(
+            @Valid @RequestBody Records.VerifyOTPRequest verifyOTPRequest,
+            HttpServletRequest request
+    ){
+        String ipAddress = request.getRemoteAddr();
+        if (getBucket("verify-otp:" + ipAddress).tryConsume(5)) {
             return ResponseEntity.ok(userService.VerifyOTP(verifyOTPRequest));
         }
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
     }
 
     @PostMapping("change-password")
-    public ResponseEntity<Records.ApiResponse<Void>> ChangePassword(@Valid @RequestBody Records.ChangePasswordRequest changePasswordRequest){
-        if (getBucket("change-password").tryConsume(12)) {
+    public ResponseEntity<Records.ApiResponse<Void>> ChangePassword(
+            @Valid @RequestBody Records.ChangePasswordRequest changePasswordRequest,
+            HttpServletRequest request
+    ){
+        String ipAddress = request.getRemoteAddr();
+        if (getBucket("change-password:" + ipAddress).tryConsume(12)) {
             return ResponseEntity.ok(userService.ChangePassword(changePasswordRequest));
         }
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
@@ -70,8 +84,12 @@ public class UserController {
 
     //Auth Endpoints
     @GetMapping("auth")
-    public ResponseEntity<Records.ApiResponse<Records.AuthCheckResponse>> checkAuth(Authentication authentication) {
-        if (getBucket("auth").tryConsume(1)) {
+    public ResponseEntity<Records.ApiResponse<Records.AuthCheckResponse>> checkAuth(
+            Authentication authentication,
+            HttpServletRequest request
+    ) {
+        String ipAddress = request.getRemoteAddr();
+        if (getBucket("auth:" + ipAddress).tryConsume(1)) {
             List<String> authorities = authentication.getAuthorities().stream()
                 .map(Object::toString)
                 .toList();
@@ -89,9 +107,11 @@ public class UserController {
     @PostMapping("auth/register")
     public ResponseEntity<Records.ApiResponse<Records.SuccessfulAuthResponse>> registerUser(
             @Valid @RequestBody Records.RegisterCredentialsSubmitRequest credentialsSubmitRequest,
-            HttpServletResponse response
+            HttpServletResponse response,
+            HttpServletRequest request
     ) {
-        if (getBucket("auth/register").tryConsume(20)) {
+        String ipAddress = request.getRemoteAddr();
+        if (getBucket("auth/register:" + ipAddress).tryConsume(20)) {
             Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
                     userService.RegisterUserWithCredentials(credentialsSubmitRequest);
 
@@ -105,9 +125,11 @@ public class UserController {
     @PostMapping("auth/login")
     public ResponseEntity<Records.ApiResponse<Void>> loginUser(
             @Valid @RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest,
-            HttpServletResponse response
+            HttpServletResponse response,
+            HttpServletRequest request
     ) {
-        if (getBucket("auth/login").tryConsume(10)) {
+        String ipAddress = request.getRemoteAddr();
+        if (getBucket("auth/login:" + ipAddress).tryConsume(10)) {
             Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
                     userService.LoginUserWithCredentials(credentialsSubmitRequest);
 
@@ -123,7 +145,8 @@ public class UserController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        if (getBucket("auth/refresh").tryConsume(5)) {
+        String ipAddress = request.getRemoteAddr();
+        if (getBucket("auth/refresh:" + ipAddress).tryConsume(5)) {
             String refreshToken = SecureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
 
             Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
@@ -141,7 +164,8 @@ public class UserController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        if (getBucket("auth/logout").tryConsume(1)) {
+        String ipAddress = request.getRemoteAddr();
+        if (getBucket("auth/logout:" + ipAddress).tryConsume(1)) {
             String jwt = SecureCookieUtil.getTokenFromCookie(request, TokenService.ACCESS_TOKEN_COOKIE);
 
             Records.ApiResponse<Void> logoutResponse = userService.Logout(jwt);
