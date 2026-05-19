@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.buenws.buenws_backend.Util.RequestUtil;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +49,7 @@ public class InquiryController {
             @Valid @RequestBody Records.FormSubmissionRequest formSubmissionRequest,
             HttpServletRequest request
     ) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("contact-submissions:" + ipAddress).tryConsume(10)) {
             return ResponseEntity.ok(inquiryService.submitContactForm(formSubmissionRequest));
         }

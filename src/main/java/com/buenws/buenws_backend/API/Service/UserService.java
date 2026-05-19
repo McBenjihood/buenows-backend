@@ -65,7 +65,6 @@ public class UserService {
 
         OTPAuthEntity otpAuthEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(credentialsSubmitRequest.verified_token());
         if (otpAuthService.checkOTPAuthEntity(otpAuthEntity)){
-            otpAuthService.disableFactor(otpAuthEntity);
             String normalizedEmail = otpAuthEntity.getContact().trim().toLowerCase();
 
             UserEntity user = new UserEntity();
@@ -95,6 +94,9 @@ public class UserService {
                         e
                 );
             }
+
+            otpAuthService.disableFactor(otpAuthEntity);
+
 
             String JWT;
             try {
@@ -148,7 +150,7 @@ public class UserService {
                             refreshToken));
 
         } catch (AuthenticationException e) {
-            throw new InvalidUserException("Invalid contact or password.", "INVALID_CREDENTIALS");
+            throw new InvalidUserException("Invalid E-Mail or password.", "INVALID_CREDENTIALS");
         }
     }
 

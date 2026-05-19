@@ -35,27 +35,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             ParseTokenException.class,
             InvalidRefreshTokenException.class,
-            ExpiredTokenException.class
-    })
-    public ResponseEntity<Records.ApiResponse<Records.ErrorResponse>> handleAuthException(CustomBaseException ex) {
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(
-                        Records.ApiResponse.error(
-                                ex.getMessage(),
-                                new Records.ErrorResponse(ex.getErrorCode())
-                        )
-                );
-    }
-
-    @ExceptionHandler({
+            ExpiredTokenException.class,
             InvalidInquiryException.class,
             DuplicateUserException.class,
             InvalidUserException.class,
             GenerateTokenException.class,
             InvalidFileOperation.class,
             OTPException.class,
-            ResetPasswordException.class
+            ResetPasswordException.class,
+            MailException.class
     })
     public ResponseEntity<Records.ApiResponse<Records.ErrorResponse>> handleBadRequestException(CustomBaseException ex) {
         return ResponseEntity

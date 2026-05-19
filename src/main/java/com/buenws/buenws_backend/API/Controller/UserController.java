@@ -4,6 +4,7 @@ import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.API.Service.UserService;
 import com.buenws.buenws_backend.Util.SecureCookieUtil;
+import com.buenws.buenws_backend.Util.RequestUtil;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import io.github.bucket4j.Bandwidth;
@@ -50,7 +51,7 @@ public class UserController {
     //Password changes
     @PostMapping("request-otp")
     public ResponseEntity<Records.ApiResponse<Void>> RequestOTP(@Valid @RequestBody Records.RequestOTPRequest requestOTPRequest, HttpServletRequest request){
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("request-otp:" + ipAddress ).tryConsume(10)) {
             return ResponseEntity.ok(userService.RequestOTP(requestOTPRequest));
         }
@@ -62,7 +63,7 @@ public class UserController {
             @Valid @RequestBody Records.VerifyOTPRequest verifyOTPRequest,
             HttpServletRequest request
     ){
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("verify-otp:" + ipAddress).tryConsume(5)) {
             return ResponseEntity.ok(userService.VerifyOTP(verifyOTPRequest));
         }
@@ -74,7 +75,7 @@ public class UserController {
             @Valid @RequestBody Records.ChangePasswordRequest changePasswordRequest,
             HttpServletRequest request
     ){
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("change-password:" + ipAddress).tryConsume(12)) {
             return ResponseEntity.ok(userService.ChangePassword(changePasswordRequest));
         }
@@ -88,7 +89,7 @@ public class UserController {
             Authentication authentication,
             HttpServletRequest request
     ) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("auth:" + ipAddress).tryConsume(1)) {
             List<String> authorities = authentication.getAuthorities().stream()
                 .map(Object::toString)
@@ -110,7 +111,7 @@ public class UserController {
             HttpServletResponse response,
             HttpServletRequest request
     ) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("auth/register:" + ipAddress).tryConsume(20)) {
             Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
                     userService.RegisterUserWithCredentials(credentialsSubmitRequest);
@@ -128,7 +129,7 @@ public class UserController {
             HttpServletResponse response,
             HttpServletRequest request
     ) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("auth/login:" + ipAddress).tryConsume(10)) {
             Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
                     userService.LoginUserWithCredentials(credentialsSubmitRequest);
@@ -145,7 +146,7 @@ public class UserController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("auth/refresh:" + ipAddress).tryConsume(5)) {
             String refreshToken = SecureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
 
@@ -164,7 +165,7 @@ public class UserController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("auth/logout:" + ipAddress).tryConsume(1)) {
             String jwt = SecureCookieUtil.getTokenFromCookie(request, TokenService.ACCESS_TOKEN_COOKIE);
 

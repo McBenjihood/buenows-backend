@@ -9,6 +9,7 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import jakarta.servlet.http.HttpServletRequest;
+import com.buenws.buenws_backend.Util.RequestUtil;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,7 +48,7 @@ public class AdminController {
 
     @GetMapping("/test")
     public ResponseEntity<Records.ApiResponse<String>> adminTest(HttpServletRequest request) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("test:" + ipAddress).tryConsume(1)) {
             return ResponseEntity.ok(
                     Records.ApiResponse.success("Admin access granted.", "ADMIN_OK")
@@ -58,7 +59,7 @@ public class AdminController {
 
     @GetMapping("/inquiries")
     public ResponseEntity<Records.ApiResponse<List<Records.InquiryResponse>>> getAllInquiries(HttpServletRequest request) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("inquiries/get:" + ipAddress).tryConsume(1)) {
             return ResponseEntity.ok(inquiryService.getAllInquiries());
         }
@@ -70,7 +71,7 @@ public class AdminController {
             @PathVariable Long inquiryId,
             HttpServletRequest request
     ) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("inquiries/delete:" + ipAddress).tryConsume(15)) {
             return ResponseEntity.ok(inquiryService.deleteInquiryForAdmin(inquiryId));
         }
@@ -79,7 +80,7 @@ public class AdminController {
 
     @GetMapping("/users")
     public ResponseEntity<Records.ApiResponse<List<Records.AdminUserResponse>>> getAllUsers(HttpServletRequest request) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("users/get:" + ipAddress).tryConsume(1)) {
             return ResponseEntity.ok(userService.getAllUsersForAdmin());
         }
@@ -92,7 +93,7 @@ public class AdminController {
             @Valid @RequestBody Records.AdminUpdateRoleRequest request,
             HttpServletRequest servletRequest
     ) {
-        String ipAddress = servletRequest.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(servletRequest);
         if (getBucket("users/update-role:" + ipAddress).tryConsume(15)) {
             return ResponseEntity.ok(userService.updateUserRole(userId, request));
         }
@@ -105,7 +106,7 @@ public class AdminController {
             @Valid @RequestBody Records.AdminUpdateUserProfileRequest request,
             HttpServletRequest servletRequest
     ) {
-        String ipAddress = servletRequest.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(servletRequest);
         if (getBucket("users/update-profile:" + ipAddress).tryConsume(15)) {
             return ResponseEntity.ok(userService.updateUserProfile(userId, request));
         }
@@ -117,7 +118,7 @@ public class AdminController {
             @PathVariable UUID userId,
             HttpServletRequest request
     ) {
-        String ipAddress = request.getRemoteAddr();
+        String ipAddress = RequestUtil.getClientIp(request);
         if (getBucket("users/delete:" + ipAddress).tryConsume(20)) {
             return ResponseEntity.ok(userService.deleteUserForAdmin(userId));
         }
