@@ -35,7 +35,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             ParseTokenException.class,
             InvalidRefreshTokenException.class,
-            ExpiredTokenException.class,
+            ExpiredTokenException.class
+    })
+    public ResponseEntity<Records.ApiResponse<Records.ErrorResponse>> handleAuthException(CustomBaseException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(
+                        Records.ApiResponse.error(
+                                ex.getMessage(),
+                                new Records.ErrorResponse(ex.getErrorCode())
+                        )
+                );
+    }
+
+
+    @ExceptionHandler({
             InvalidInquiryException.class,
             DuplicateUserException.class,
             InvalidUserException.class,
@@ -48,6 +62,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Records.ApiResponse<Records.ErrorResponse>> handleBadRequestException(CustomBaseException ex) {
         return ResponseEntity
                 .badRequest()
+                .body(
+                        Records.ApiResponse.error(
+                                ex.getMessage(),
+                                new Records.ErrorResponse(ex.getErrorCode())
+                        )
+                );
+    }
+
+    @ExceptionHandler({
+            RateLimitException.class
+    })
+    public ResponseEntity<Records.ApiResponse<Records.ErrorResponse>> handleRateLimitException(CustomBaseException ex) {
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(
                         Records.ApiResponse.error(
                                 ex.getMessage(),

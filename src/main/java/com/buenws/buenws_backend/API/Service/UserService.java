@@ -145,6 +145,16 @@ public class UserService {
             }
 
             String refreshToken = tokenService.generateRefreshToken();
+            if (user.getRefreshTokenEntity() == null) {
+                user.setRefreshTokenEntity(
+                        new RefreshTokenEntity(
+                                refreshToken,
+                                TimeUtil.getCurrentTime(),
+                                TimeUtil.getWeekFromNow(),
+                                user
+                        )
+                );
+            }
             user.getRefreshTokenEntity().setToken(CryptographyUtil.HashString(refreshToken, salt) );
             userRepository.save(user);
 
@@ -191,10 +201,15 @@ public class UserService {
     }
 
     @Transactional
-    public Records.ApiResponse<Void> Logout(String jwt) {
-        if (jwt != null && !jwt.isBlank()) {
-            UserEntity user =  repositoryRetrieval.getUserEntityFromToken(jwt);
-            RefreshTokenEntity refreshTokenEntity = user.getRefreshTokenEntity();
+    public Records.ApiResponse<Void> Logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            RefreshTokenEntity refreshTokenEntity;
+            try {
+                refreshTokenEntity = tokenService.validateRefreshToken(refreshToken);
+            } catch (ParseException | JOSEException e) {
+                throw new ParseTokenException("Could not log you out successfully","INVALID_TOKEN",e);
+            }
+
             refreshTokenEntity.setToken(tokenService.generateRefreshToken());
             refreshTokenEntity.setEdited_at(TimeUtil.getCurrentTime());
             refreshTokenEntity.setExpires_at(TimeUtil.getCurrentTime());

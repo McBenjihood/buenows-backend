@@ -89,9 +89,6 @@ public class Records
     ){}
 
     public record RegisterCredentialsSubmitRequest(
-            @NotBlank(message = "Email is required")
-            @Email(message = "Invalid contact format")
-            String email,
             @NotBlank(message = "First name is required")
             @Size(max = 50)
             String first_name,
@@ -117,6 +114,7 @@ public class Records
             String refresh_token
     ){}
     public record RequestOTPRequest(
+            @Email(message = "Invalid contact format")
             @NotBlank(message = "Email is required")
             String contact_information
     ){}

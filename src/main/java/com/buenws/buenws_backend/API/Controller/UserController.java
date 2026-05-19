@@ -1,87 +1,56 @@
 package com.buenws.buenws_backend.API.Controller;
 
 import com.buenws.buenws_backend.API.Records.Records;
+import com.buenws.buenws_backend.API.Service.RateLimitService;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
 import com.buenws.buenws_backend.API.Service.UserService;
 import com.buenws.buenws_backend.Util.SecureCookieUtil;
 import com.buenws.buenws_backend.Util.RequestUtil;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
 
-
     private final UserService userService;
+    private final RateLimitService rateLimitService;
 
-    private final Cache<String, Bucket> buckets = CacheBuilder.newBuilder()
-            .expireAfterAccess(10, TimeUnit.MINUTES)
-            .build();
-
-    private Bucket getBucket(String key) {
-        try {
-            return buckets.get(key, () -> Bucket.builder()
-                    .addLimit(Bandwidth.classic(60, Refill.intervally(60, Duration.ofMinutes(1))))
-                    .build());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public UserController(UserService userService) {
+    public UserController(UserService userService, RateLimitService rateLimitService) {
         this.userService = userService;
+        this.rateLimitService = rateLimitService;
     }
-
 
     //Password changes
     @PostMapping("request-otp")
-    public ResponseEntity<Records.ApiResponse<Void>> RequestOTP(@Valid @RequestBody Records.RequestOTPRequest requestOTPRequest, HttpServletRequest request){
-        String ipAddress = RequestUtil.getClientIp(request);
-        if (getBucket("request-otp:" + ipAddress ).tryConsume(10)) {
-            return ResponseEntity.ok(userService.RequestOTP(requestOTPRequest));
-        }
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    public ResponseEntity<Records.ApiResponse<Void>> RequestOTP(@Valid @RequestBody Records.RequestOTPRequest requestOTPRequest, HttpServletRequest request) {
+        rateLimitService.checkBucket("request-otp:" + RequestUtil.getClientIp(request), 10);
+        return ResponseEntity.ok(userService.RequestOTP(requestOTPRequest));
     }
 
     @PostMapping("verify-otp")
     public ResponseEntity<Records.ApiResponse<Records.VerifyOTPResponse>> VerifyOTP(
             @Valid @RequestBody Records.VerifyOTPRequest verifyOTPRequest,
             HttpServletRequest request
-    ){
-        String ipAddress = RequestUtil.getClientIp(request);
-        if (getBucket("verify-otp:" + ipAddress).tryConsume(5)) {
-            return ResponseEntity.ok(userService.VerifyOTP(verifyOTPRequest));
-        }
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    ) {
+        rateLimitService.checkBucket("verify-otp:" + RequestUtil.getClientIp(request), 5);
+        return ResponseEntity.ok(userService.VerifyOTP(verifyOTPRequest));
     }
 
     @PostMapping("change-password")
     public ResponseEntity<Records.ApiResponse<Void>> ChangePassword(
             @Valid @RequestBody Records.ChangePasswordRequest changePasswordRequest,
             HttpServletRequest request
-    ){
-        String ipAddress = RequestUtil.getClientIp(request);
-        if (getBucket("change-password:" + ipAddress).tryConsume(12)) {
-            return ResponseEntity.ok(userService.ChangePassword(changePasswordRequest));
-        }
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+    ) {
+        rateLimitService.checkBucket("change-password:" + RequestUtil.getClientIp(request), 12);
+        return ResponseEntity.ok(userService.ChangePassword(changePasswordRequest));
     }
-
 
     //Auth Endpoints
     @GetMapping("auth")
@@ -89,20 +58,18 @@ public class UserController {
             Authentication authentication,
             HttpServletRequest request
     ) {
-        String ipAddress = RequestUtil.getClientIp(request);
-        if (getBucket("auth:" + ipAddress).tryConsume(1)) {
-            List<String> authorities = authentication.getAuthorities().stream()
+        rateLimitService.checkBucket("auth:" + RequestUtil.getClientIp(request), 1);
+
+        List<String> authorities = authentication.getAuthorities().stream()
                 .map(Object::toString)
                 .toList();
 
-            return ResponseEntity.ok(
+        return ResponseEntity.ok(
                 Records.ApiResponse.success(
                         "Valid Authentication",
                         new Records.AuthCheckResponse(authentication.getName(), authorities)
                 )
-            );
-        }
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        );
     }
 
     @PostMapping("auth/register")
@@ -111,53 +78,47 @@ public class UserController {
             HttpServletResponse response,
             HttpServletRequest request
     ) {
-        String ipAddress = RequestUtil.getClientIp(request);
-        if (getBucket("auth/register:" + ipAddress).tryConsume(20)) {
-            Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
-                    userService.RegisterUserWithCredentials(credentialsSubmitRequest);
+        rateLimitService.checkBucket("auth/register:" + RequestUtil.getClientIp(request), 20);
 
-            SecureCookieUtil.addAuthCookies(response, authResponse.data());
+        Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
+                userService.RegisterUserWithCredentials(credentialsSubmitRequest);
 
-            return ResponseEntity.ok(authResponse);
-        }
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        SecureCookieUtil.addAuthCookies(response, authResponse.data());
+
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("auth/login")
-    public ResponseEntity<Records.ApiResponse<Void>> loginUser(
+    public ResponseEntity<Records.ApiResponse<Records.SuccessfulAuthResponse>> loginUser(
             @Valid @RequestBody Records.CredentialsSubmitRequest credentialsSubmitRequest,
             HttpServletResponse response,
             HttpServletRequest request
     ) {
-        String ipAddress = RequestUtil.getClientIp(request);
-        if (getBucket("auth/login:" + ipAddress).tryConsume(10)) {
-            Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
-                    userService.LoginUserWithCredentials(credentialsSubmitRequest);
+        rateLimitService.checkBucket("auth/login:" + RequestUtil.getClientIp(request), 10);
 
-            SecureCookieUtil.addAuthCookies(response, authResponse.data());
+        Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
+                userService.LoginUserWithCredentials(credentialsSubmitRequest);
 
-            return ResponseEntity.ok(Records.ApiResponse.success(authResponse.message()));
-        }
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        SecureCookieUtil.addAuthCookies(response, authResponse.data());
+
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("auth/refresh")
-    public ResponseEntity<Records.ApiResponse<Void>> refreshToken(
+    public ResponseEntity<Records.ApiResponse<Records.SuccessfulAuthResponse>> refreshToken(
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        String ipAddress = RequestUtil.getClientIp(request);
-        if (getBucket("auth/refresh:" + ipAddress).tryConsume(5)) {
-            String refreshToken = SecureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
+        rateLimitService.checkBucket("auth/refresh:" + RequestUtil.getClientIp(request), 5);
 
-            Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
-                    userService.RefreshToken(refreshToken);
+        String refreshToken = SecureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
 
-            SecureCookieUtil.addAuthCookies(response, authResponse.data());
+        Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
+                userService.RefreshToken(refreshToken);
 
-            return ResponseEntity.ok(Records.ApiResponse.success(authResponse.message()));
-        }
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        SecureCookieUtil.addAuthCookies(response, authResponse.data());
+
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("auth/logout")
@@ -165,16 +126,14 @@ public class UserController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        String ipAddress = RequestUtil.getClientIp(request);
-        if (getBucket("auth/logout:" + ipAddress).tryConsume(1)) {
-            String jwt = SecureCookieUtil.getTokenFromCookie(request, TokenService.ACCESS_TOKEN_COOKIE);
+        rateLimitService.checkBucket("auth/logout:" + RequestUtil.getClientIp(request), 1);
 
-            Records.ApiResponse<Void> logoutResponse = userService.Logout(jwt);
+        String refreshToken = SecureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
 
-            SecureCookieUtil.clearAuthCookies(response);
+        Records.ApiResponse<Void> logoutResponse = userService.Logout(refreshToken);
 
-            return ResponseEntity.ok(logoutResponse);
-        }
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        SecureCookieUtil.clearAuthCookies(response);
+
+        return ResponseEntity.ok(logoutResponse);
     }
 }

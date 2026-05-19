@@ -58,14 +58,7 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String accessToken = tokenService.parseTokenFromCookie(
-                request,
-                TokenService.ACCESS_TOKEN_COOKIE
-        );
-
-        if (accessToken == null || accessToken.isBlank()) {
-            accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
-        }
+        String accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
 
         if (accessToken != null && !accessToken.isBlank()) {
             try {

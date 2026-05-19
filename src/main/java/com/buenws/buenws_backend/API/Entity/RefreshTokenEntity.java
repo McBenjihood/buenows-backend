@@ -24,7 +24,7 @@ public class RefreshTokenEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "token_id")
-    Long token_id;
+    Long tokenID;
 
     @Column(name = "token")
     private String token;
