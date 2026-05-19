@@ -5,14 +5,25 @@ services:
     image: postgres:latest
     container_name: postgres_buenows
     restart: always
+    env_file: .env
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: "buenows-main"
       POSTGRES_USER: ${DB_USER}
     ports:
-      - "2987:5432"
+      - "5432:5432"
     volumes:
       - postgres_data_fresh:/var/lib/postgresql
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db_postgres:5432/buenows-main
+    depends_on:
+      - db_postgres
 
 volumes:
   postgres_data_fresh:
