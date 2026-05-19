@@ -75,9 +75,12 @@ public class UserService {
             user.setAuthorities(new ArrayList<>(List.of("ROLE_USER")));
             user.setEmail(normalizedEmail);
             user.setPassword(passwordEncoder.encode(credentialsSubmitRequest.password()));
+
+            String refresh_token = CryptographyUtil.HashString(tokenService.generateRefreshToken(), salt);
+
             user.setRefreshTokenEntity(
                     new RefreshTokenEntity(
-                            CryptographyUtil.HashString(tokenService.generateRefreshToken(), salt),
+                            refresh_token,
                             TimeUtil.getCurrentTime(),
                             TimeUtil.getWeekFromNow(),
                             user
@@ -109,7 +112,9 @@ public class UserService {
                     "User with Email: '" + normalizedEmail + "' registered successfully",
                     new Records.SuccessfulAuthResponse(
                             JWT,
-                            user.getRefreshTokenEntity().getToken()));
+                            refresh_token
+                    )
+            );
         }else {
             throw new OTPException("Your Email-Verification couldn't be validated. Please try again.", "INVALID_OTP");
         }
