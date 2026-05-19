@@ -49,7 +49,7 @@ public class SecurityConfiguration {
                         .ignoringRequestMatchers(
                                 "/api/user/auth/register",
                                 "/api/user/auth/login",
-                                "api/user/request-otp",
+                                "/api/user/request-otp",
                                 "/api/user/verify-otp",
                                 "/api/user/change-password",
                                 "/api/inquiry/contact-submission"
