@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{HTML_LANG}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Your Password</title>
+    <title>{{TITLE}}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
     </style>
@@ -15,13 +15,13 @@
             <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #312E3A; border-radius: 16px; width: 600px; max-width: 90%;">
                 <tr>
                     <td align="center" style="padding: 40px 0 20px 0;">
-                        <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #42b883; letter-spacing: -0.5px;">Buenows</h1>
+                        <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #42b883;">{{BRAND}}</h1>
                     </td>
                 </tr>
 
                 <tr>
                     <td style="padding: 0 40px 40px 40px;">
-                        <h2 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 500; color: #ffffff; text-align: center;">This is your Verification-Code</h2>
+                        <h2 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 500; color: #ffffff; text-align: center;">{{HEADING}}</h2>
 
 
                         <table border="0" cellpadding="0" cellspacing="0" align="center">
@@ -35,7 +35,7 @@
                         </table>
 
                         <p style="margin: 30px 0 0 0; font-size: 14px; color: #a1a1a1; text-align: center;">
-                            This code will expire in <strong>15 minutes</strong>. If you didn't request this, you can safely ignore this email.
+                            {{INFO_TEXT}}
                         </p>
                     </td>
                 </tr>
@@ -43,10 +43,10 @@
                 <tr>
                     <td style="padding: 30px 40px; background-color: #27242F; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
                         <p style="margin: 0; font-size: 12px; color: #a1a1a1;">
-                            &copy; 2024 Buenows. All rights reserved.
+                            {{COPYRIGHT}}
                         </p>
                         <p style="margin: 10px 0 0 0; font-size: 12px; color: #a1a1a1;">
-                            <a href="#" style="color: #42b883; text-decoration: none;">Privacy Policy</a> &nbsp;&bull;&nbsp; <a href="#" style="color: #42b883; text-decoration: none;">Support</a>
+                            <a href="https://bueno-ws.ch/legal" style="color: #42b883; text-decoration: none;">{{PRIVACY_LABEL}}</a> &nbsp;&bull;&nbsp; <a href="mailto:info.buenows@gmail.com" style="color: #42b883; text-decoration: none;">{{SUPPORT_LABEL}}</a>
                         </p>
                     </td>
                 </tr>
@@ -56,7 +56,7 @@
                 <tr>
                     <td align="center" style="padding: 20px 0;">
                         <p style="margin: 0; font-size: 11px; color: #555555; text-align: center;">
-                            You are receiving this because a password reset was requested for your Buenows account.
+                            {{REASON_TEXT}}
                         </p>
                     </td>
                 </tr>

@@ -44,6 +44,9 @@ public class TokenService {
     @Value("${HASH_SALT}")
     private String salt;
 
+    @Value("${app.jwt.issuer:https://bueno-ws.ch}")
+    private String issuer;
+
     @PostConstruct
     public void init() {
         if (tokenSecret == null || tokenSecret.length() < 32) {
@@ -56,7 +59,7 @@ public class TokenService {
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(userEntity.getEmail())
-                .issuer("https://buenows.org")
+                .issuer(issuer)
                 .issueTime(Date.from(TimeUtil.getCurrentTime()))
                 .expirationTime(Date.from(TimeUtil.getHourFromNow()))
                 .claim("roles", userEntity.getAuthorities())
@@ -80,6 +83,10 @@ public class TokenService {
 
     //Methods below validate respective token types and return their matching Entities.
     public RefreshTokenEntity validateRefreshToken(String token) throws ParseException, JOSEException {
+        if (token == null || token.isBlank()) {
+            throw new InvalidRefreshTokenException("Please Log in again.", "INVALID_TOKEN");
+        }
+
         Optional<RefreshTokenEntity> refreshTokenOptional = refreshTokenRepository.findByToken(CryptographyUtil.HashString(token, salt));
         if (refreshTokenOptional.isPresent()) {
             RefreshTokenEntity refreshTokenEntity = refreshTokenOptional.get();

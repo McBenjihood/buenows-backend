@@ -38,6 +38,8 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
                 || path.equals("/api/user/auth/register")
                 || path.equals("/api/user/auth/refresh")
                 || path.equals("/api/user/auth/logout")
+                || path.equals("/actuator/health")
+                || path.startsWith("/actuator/health/")
                 || path.equals("/api/user/request-reset-password")
                 || path.equals("/api/user/reset-password")
                 || path.equals("/api/user/request-otp")
@@ -59,6 +61,9 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
         }
 
         String accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
+        if (accessToken == null || accessToken.isBlank()) {
+            accessToken = tokenService.parseTokenFromCookie(request, TokenService.ACCESS_TOKEN_COOKIE);
+        }
 
         if (accessToken != null && !accessToken.isBlank()) {
             try {

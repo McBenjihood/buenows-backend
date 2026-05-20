@@ -96,7 +96,7 @@ public class Records
             @Size(max = 50)
             String last_name,
             @NotBlank(message = "Password is required")
-            @Size(min = 8, message = "Password must be at least 8 characters long")
+            @Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters long")
             String password,
             @NotNull(message = "UUID must not be null")
             UUID verified_token
@@ -106,7 +106,7 @@ public class Records
             @Email(message = "Invalid contact format")
             String email,
             @NotBlank(message = "Password is required")
-            @Size(min = 8, message = "Password must be at least 8 characters long")
+            @Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters long")
             String password
     ){}
     public record RefreshTokenRequest(
@@ -128,7 +128,7 @@ public class Records
     ){}
     public record ChangePasswordRequest(
             @NotBlank(message = "Password is required")
-            @Size(min = 8, message = "Password must be at least 8 characters long")
+            @Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters long")
             String password,
             @NotNull(message = "UUID must not be null")
             UUID verified_token

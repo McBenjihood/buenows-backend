@@ -31,7 +31,7 @@ public class UserController {
     @PostMapping("request-otp")
     public ResponseEntity<Records.ApiResponse<Void>> RequestOTP(@Valid @RequestBody Records.RequestOTPRequest requestOTPRequest, HttpServletRequest request) {
         rateLimitService.checkBucket("request-otp:" + RequestUtil.getClientIp(request), 10);
-        return ResponseEntity.ok(userService.RequestOTP(requestOTPRequest));
+        return ResponseEntity.ok(userService.RequestOTP(requestOTPRequest, request.getLocale()));
     }
 
     @PostMapping("verify-otp")

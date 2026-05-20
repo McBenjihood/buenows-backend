@@ -8,6 +8,7 @@ import com.buenws.buenws_backend.API.Repository.RepositoryRetrieval;
 import com.buenws.buenws_backend.API.Repository.Repositories.UserAssetsRepository;
 import com.buenws.buenws_backend.Util.FileUtil;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +28,9 @@ public class UserAssetService {
     private final UserAssetsRepository userAssetsRepository;
 
     private final String UPLOAD_DIR = "src/main/resources/static/images/";
+
+    @Value("${app.public-base-url:http://localhost:8080}")
+    private String publicBaseUrl;
 
     public UserAssetService(RepositoryRetrieval repositoryRetrieval, UserAssetsRepository userAssetsRepository) {
         this.repositoryRetrieval = repositoryRetrieval;
@@ -64,7 +68,8 @@ public class UserAssetService {
             //Delete tmp file after successful conversion
             Files.delete(TempFilePath);
 
-            UserAssetEntity userAssetEntity = new UserAssetEntity("image", "http://localhost:8080/images/" + user.getId() + "/"+ FilePrefix + "_image.png", OutputFile.getPath(), user);
+            String imageUrl = publicBaseUrl.replaceAll("/$", "") + "/images/" + user.getId() + "/" + FilePrefix + "_image.png";
+            UserAssetEntity userAssetEntity = new UserAssetEntity("image", imageUrl, OutputFile.getPath(), user);
             userAssetsRepository.save(userAssetEntity);
 
             return Records.ApiResponse.success(

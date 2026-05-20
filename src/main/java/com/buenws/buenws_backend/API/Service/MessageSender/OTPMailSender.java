@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 @Component
 public class OTPMailSender implements OTPMessageSender {
@@ -21,24 +22,17 @@ public class OTPMailSender implements OTPMessageSender {
         this.mailSender = mailSender;
     }
 
-    public boolean SendMessage(String recipient, String subject, String newOTP) {
+    public boolean SendMessage(String recipient, String newOTP, Locale locale) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             String safeRecipient = recipient == null ? "" : recipient;
-            String safeSubject = subject == null ? "Password reset" : subject;
-            String safeOTP = newOTP == null ? "" : newOTP;
+            OtpMailCopy copy = resolveCopy(locale);
 
             helper.setTo(safeRecipient);
-            helper.setSubject(safeSubject);
-
-            ClassPathResource resource = new ClassPathResource("templates/otp_template.html");
-            String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-
-            htmlTemplate = htmlTemplate.replace("{{OTP}}", safeOTP);
-
-            helper.setText(htmlTemplate, true);
+            helper.setSubject(copy.subject());
+            helper.setText(renderTemplate(newOTP, locale), true);
 
             mailSender.send(message);
             return true;
@@ -51,5 +45,68 @@ public class OTPMailSender implements OTPMessageSender {
                     e
             );
         }
+    }
+
+    String renderTemplate(String newOTP, Locale locale) throws IOException {
+        String safeOTP = newOTP == null ? "" : newOTP;
+        OtpMailCopy copy = resolveCopy(locale);
+
+        ClassPathResource resource = new ClassPathResource("templates/otp_template.html");
+        String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
+        return htmlTemplate
+                .replace("{{HTML_LANG}}", copy.htmlLanguage())
+                .replace("{{TITLE}}", copy.title())
+                .replace("{{BRAND}}", "Bueno Web Solutions")
+                .replace("{{HEADING}}", copy.heading())
+                .replace("{{OTP}}", safeOTP)
+                .replace("{{INFO_TEXT}}", copy.infoText())
+                .replace("{{COPYRIGHT}}", copy.copyright())
+                .replace("{{PRIVACY_LABEL}}", copy.privacyLabel())
+                .replace("{{SUPPORT_LABEL}}", copy.supportLabel())
+                .replace("{{REASON_TEXT}}", copy.reasonText());
+    }
+
+    OtpMailCopy resolveCopy(Locale locale) {
+        String language = locale == null ? "en" : locale.getLanguage();
+
+        if ("de".equalsIgnoreCase(language)) {
+            return new OtpMailCopy(
+                    "de",
+                    "Ihr Bueno Web Solutions Bestätigungscode",
+                    "Bestätigungscode",
+                    "Ihr Bestätigungscode",
+                    "Dieser Code läuft in <strong>15 Minuten</strong> ab. Wenn Sie ihn nicht angefordert haben, können Sie diese E-Mail ignorieren.",
+                    "&copy; 2026 Bueno Web Solutions. Alle Rechte vorbehalten.",
+                    "Datenschutz",
+                    "Support",
+                    "Sie erhalten diese E-Mail, weil ein Bestätigungscode für Ihr Bueno Web Solutions Konto angefordert wurde."
+            );
+        }
+
+        return new OtpMailCopy(
+                "en",
+                "Your Bueno Web Solutions verification code",
+                "Verification code",
+                "Your verification code",
+                "This code will expire in <strong>15 minutes</strong>. If you did not request this, you can safely ignore this email.",
+                "&copy; 2026 Bueno Web Solutions. All rights reserved.",
+                "Privacy",
+                "Support",
+                "You are receiving this because a verification code was requested for your Bueno Web Solutions account."
+        );
+    }
+
+    record OtpMailCopy(
+            String htmlLanguage,
+            String subject,
+            String title,
+            String heading,
+            String infoText,
+            String copyright,
+            String privacyLabel,
+            String supportLabel,
+            String reasonText
+    ) {
     }
 }

@@ -28,6 +28,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -76,11 +77,11 @@ public class UserService {
             user.setEmail(normalizedEmail);
             user.setPassword(passwordEncoder.encode(credentialsSubmitRequest.password()));
 
-            String refresh_token = CryptographyUtil.HashString(tokenService.generateRefreshToken(), salt);
+            String refreshToken = tokenService.generateRefreshToken();
 
             user.setRefreshTokenEntity(
                     new RefreshTokenEntity(
-                            refresh_token,
+                            CryptographyUtil.HashString(refreshToken, salt),
                             TimeUtil.getCurrentTime(),
                             TimeUtil.getWeekFromNow(),
                             user
@@ -112,7 +113,7 @@ public class UserService {
                     "User with Email: '" + normalizedEmail + "' registered successfully",
                     new Records.SuccessfulAuthResponse(
                             JWT,
-                            refresh_token
+                            refreshToken
                     )
             );
         }else {
@@ -156,6 +157,8 @@ public class UserService {
                 );
             }
             user.getRefreshTokenEntity().setToken(CryptographyUtil.HashString(refreshToken, salt) );
+            user.getRefreshTokenEntity().setEdited_at(TimeUtil.getCurrentTime());
+            user.getRefreshTokenEntity().setExpires_at(TimeUtil.getWeekFromNow());
             userRepository.save(user);
 
             return Records.ApiResponse.success(
@@ -206,14 +209,11 @@ public class UserService {
             RefreshTokenEntity refreshTokenEntity;
             try {
                 refreshTokenEntity = tokenService.validateRefreshToken(refreshToken);
-            } catch (ParseException | JOSEException e) {
-                throw new ParseTokenException("Could not log you out successfully","INVALID_TOKEN",e);
+            } catch (ParseException | JOSEException | RuntimeException e) {
+                return Records.ApiResponse.success("Logged out successfully.");
             }
 
-            refreshTokenEntity.setToken(tokenService.generateRefreshToken());
-            refreshTokenEntity.setEdited_at(TimeUtil.getCurrentTime());
-            refreshTokenEntity.setExpires_at(TimeUtil.getCurrentTime());
-            refreshTokenRepository.save(refreshTokenEntity);
+            refreshTokenRepository.delete(refreshTokenEntity);
         }
 
         return Records.ApiResponse.success("Logged out successfully.");
@@ -221,10 +221,10 @@ public class UserService {
 
     // Reset Password Logic
     @Transactional
-    public Records.ApiResponse<Void> RequestOTP(Records.RequestOTPRequest requestOTPRequest) {
-        otpAuthService.requestFactor(requestOTPRequest.contact_information());
+    public Records.ApiResponse<Void> RequestOTP(Records.RequestOTPRequest requestOTPRequest, Locale locale) {
+        otpAuthService.requestFactor(requestOTPRequest.contact_information(), locale);
         return Records.ApiResponse.success(
-                "If an account exists, an contact to reset your password has been sent."
+                "If an account exists, a verification email has been sent."
         );
     }
 
@@ -244,8 +244,19 @@ public class UserService {
         OTPAuthEntity otpAuthEntity = repositoryRetrieval.getResetCodeEntityFromVerified_Token(changePasswordRequest.verified_token());
 
         if (otpAuthService.checkOTPAuthEntity(otpAuthEntity)) {
-            UserEntity user = repositoryRetrieval.getUserEntityFromEmail(otpAuthEntity.getContact());
+            UserEntity user;
+            try {
+                user = repositoryRetrieval.getUserEntityFromEmail(otpAuthEntity.getContact());
+            } catch (InvalidUserException e) {
+                otpAuthService.disableFactor(otpAuthEntity);
+                throw new ResetPasswordException("Password couldn't be changed", "INVALID_OTP");
+            }
+
             user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
+            if (user.getRefreshTokenEntity() != null) {
+                refreshTokenRepository.delete(user.getRefreshTokenEntity());
+                user.setRefreshTokenEntity(null);
+            }
 
             otpAuthService.disableFactor(otpAuthEntity);
 

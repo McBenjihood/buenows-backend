@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,11 +37,12 @@ public class OTPAuthService {
     }
 
     @Transactional
-    public boolean requestFactor(String contact_information) {
-        Optional<OTPAuthEntity> resetCodeEntity = OTPAuthRepository.findByContact(contact_information);
+    public boolean requestFactor(String contact_information, Locale locale) {
+        String normalizedContact = normalizeContact(contact_information);
+        Optional<OTPAuthEntity> resetCodeEntity = OTPAuthRepository.findByContact(normalizedContact);
 
         OTPAuthEntity otpAuthEntity = resetCodeEntity.orElseGet(
-                () -> new OTPAuthEntity(contact_information)
+                () -> new OTPAuthEntity(normalizedContact)
         );
 
         if (otpAuthEntity.getCooldown().isBefore(TimeUtil.getCurrentTime())){
@@ -55,8 +57,8 @@ public class OTPAuthService {
 
             messageSender.SendMessage(
                     otpAuthEntity.getContact(),
-                    "Confirming Identity to change your Password.",
-                    newOTP
+                    newOTP,
+                    locale
             );
 
             OTPAuthRepository.save(otpAuthEntity);
@@ -69,7 +71,7 @@ public class OTPAuthService {
 
     @Transactional(noRollbackFor = ResetPasswordException.class)
     public UUID verifyFactor(String contact_information, String factor) {
-        OTPAuthEntity OTPAuthEntity = repositoryRetrieval.getResetCodeEntityFromContact_Information(contact_information);
+        OTPAuthEntity OTPAuthEntity = repositoryRetrieval.getResetCodeEntityFromContact_Information(normalizeContact(contact_information));
         int currentAttempts = OTPAuthEntity.getAttempts();
 
         if (checkOTPAuthEntity(OTPAuthEntity)) {
@@ -126,5 +128,9 @@ public class OTPAuthService {
             disableFactor(otpAuthEntity);
             throw new OTPException(e.getMessage(), "INVALID_OTP");
         }
+    }
+
+    private String normalizeContact(String contactInformation) {
+        return contactInformation == null ? "" : contactInformation.trim().toLowerCase(Locale.ROOT);
     }
 }
