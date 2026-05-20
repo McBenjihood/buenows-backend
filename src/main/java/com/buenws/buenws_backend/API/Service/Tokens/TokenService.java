@@ -28,7 +28,6 @@ import java.util.Optional;
 
 @Service
 public class TokenService {
-    public static final String ACCESS_TOKEN_COOKIE = "access_token";
     public static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     private final RefreshTokenRepository refreshTokenRepository;
@@ -134,8 +133,9 @@ public class TokenService {
     public String parseTokenFromHeader(String header){
         if(header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
+        }else {
+            throw new ParseTokenException("Please Log in again.", "INVALID_TOKEN");
         }
-        return null;
     }
 
     public String parseTokenFromCookie(HttpServletRequest request, String cookieName) {

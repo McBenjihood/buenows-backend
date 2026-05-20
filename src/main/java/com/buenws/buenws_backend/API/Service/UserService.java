@@ -213,7 +213,10 @@ public class UserService {
                 return Records.ApiResponse.success("Logged out successfully.");
             }
 
-            refreshTokenRepository.delete(refreshTokenEntity);
+            refreshTokenEntity.setToken(tokenService.generateRefreshToken());
+            refreshTokenEntity.setEdited_at(TimeUtil.getCurrentTime());
+            refreshTokenEntity.setExpires_at(TimeUtil.getCurrentTime());
+            refreshTokenRepository.save(refreshTokenEntity);
         }
 
         return Records.ApiResponse.success("Logged out successfully.");
@@ -253,10 +256,6 @@ public class UserService {
             }
 
             user.setPassword(passwordEncoder.encode(changePasswordRequest.password()));
-            if (user.getRefreshTokenEntity() != null) {
-                refreshTokenRepository.delete(user.getRefreshTokenEntity());
-                user.setRefreshTokenEntity(null);
-            }
 
             otpAuthService.disableFactor(otpAuthEntity);
 

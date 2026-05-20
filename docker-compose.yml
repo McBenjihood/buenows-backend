@@ -2,8 +2,7 @@ version: "3.9"
 
 services:
   db_postgres:
-    # Local development only. Production uses AWS RDS PostgreSQL, not this service.
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: postgres_buenows
     restart: always
     environment:
