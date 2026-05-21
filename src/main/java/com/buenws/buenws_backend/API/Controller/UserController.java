@@ -27,11 +27,11 @@ public class UserController {
         this.rateLimitService = rateLimitService;
     }
 
-    //Password changes
+    //OTP Endpoints
     @PostMapping("request-otp")
     public ResponseEntity<Records.ApiResponse<Void>> RequestOTP(@Valid @RequestBody Records.RequestOTPRequest requestOTPRequest, HttpServletRequest request) {
         rateLimitService.checkBucket("request-otp:" + RequestUtil.getClientIp(request), 10);
-        return ResponseEntity.ok(userService.RequestOTP(requestOTPRequest, request.getLocale()));
+        return ResponseEntity.ok(userService.RequestOTP(requestOTPRequest));
     }
 
     @PostMapping("verify-otp")
@@ -42,6 +42,8 @@ public class UserController {
         rateLimitService.checkBucket("verify-otp:" + RequestUtil.getClientIp(request), 5);
         return ResponseEntity.ok(userService.VerifyOTP(verifyOTPRequest));
     }
+
+
 
     @PostMapping("change-password")
     public ResponseEntity<Records.ApiResponse<Void>> ChangePassword(

@@ -22,7 +22,31 @@ public class OTPMailSender implements OTPMessageSender {
         this.mailSender = mailSender;
     }
 
-    public boolean SendMessage(String recipient, String newOTP, Locale locale) {
+    private enum SupportedLanguage {
+        EN(Locale.US),
+        DE(Locale.GERMAN);
+
+        private final Locale locale;
+
+        SupportedLanguage(Locale locale) {
+            this.locale = locale;
+        }
+
+        public Locale getLocale() {
+            return locale;
+        }
+    }
+
+    private Locale getLocale(String languageTag) {
+        if (languageTag != null && languageTag.trim().toLowerCase().startsWith("en")) {
+            return SupportedLanguage.EN.getLocale();
+        }
+        return SupportedLanguage.DE.getLocale();
+    }
+
+
+    public boolean SendMessage(String recipient, String newOTP, String language_tag) {
+        Locale locale = getLocale(language_tag);
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
@@ -68,32 +92,32 @@ public class OTPMailSender implements OTPMessageSender {
     }
 
     OtpMailCopy resolveCopy(Locale locale) {
-        String language = locale == null ? "en" : locale.getLanguage();
+        String language = locale == null ? "de" : locale.getLanguage();
 
-        if ("de".equalsIgnoreCase(language)) {
+        if ("en".equalsIgnoreCase(language)) {
             return new OtpMailCopy(
-                    "de",
-                    "Ihr Bueno Web Solutions Bestätigungscode",
-                    "Bestätigungscode",
-                    "Ihr Bestätigungscode",
-                    "Dieser Code läuft in <strong>15 Minuten</strong> ab. Wenn Sie ihn nicht angefordert haben, können Sie diese E-Mail ignorieren.",
-                    "&copy; 2026 Bueno Web Solutions. Alle Rechte vorbehalten.",
-                    "Datenschutz",
+                    "en",
+                    "Your Bueno Web Solutions verification code",
+                    "Verification code",
+                    "Your verification code",
+                    "This code will expire in <strong>15 minutes</strong>. If you did not request this, you can safely ignore this email.",
+                    "&copy; 2026 Bueno Web Solutions. All rights reserved.",
+                    "Privacy",
                     "Support",
-                    "Sie erhalten diese E-Mail, weil ein Bestätigungscode für Ihr Bueno Web Solutions Konto angefordert wurde."
+                    "You are receiving this because a verification code was requested for your Bueno Web Solutions account."
             );
         }
 
         return new OtpMailCopy(
-                "en",
-                "Your Bueno Web Solutions verification code",
-                "Verification code",
-                "Your verification code",
-                "This code will expire in <strong>15 minutes</strong>. If you did not request this, you can safely ignore this email.",
-                "&copy; 2026 Bueno Web Solutions. All rights reserved.",
-                "Privacy",
+                "de",
+                "Ihr Bueno Web Solutions Bestätigungscode",
+                "Bestätigungscode",
+                "Ihr Bestätigungscode",
+                "Dieser Code läuft in <strong>15 Minuten</strong> ab. Wenn Sie ihn nicht angefordert haben, können Sie diese E-Mail ignorieren.",
+                "&copy; 2026 Bueno Web Solutions. Alle Rechte vorbehalten.",
+                "Datenschutz",
                 "Support",
-                "You are receiving this because a verification code was requested for your Bueno Web Solutions account."
+                "Sie erhalten diese E-Mail, weil ein Bestätigungscode für Ihr Bueno Web Solutions Konto angefordert wurde."
         );
     }
 

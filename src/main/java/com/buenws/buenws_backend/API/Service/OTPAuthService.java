@@ -3,6 +3,7 @@ package com.buenws.buenws_backend.API.Service;
 import com.buenws.buenws_backend.API.Entity.OTPAuthEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.OTPException;
 import com.buenws.buenws_backend.API.Exception.Custom.ResetPasswordException;
+import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.OTPAuthRepository;
 import com.buenws.buenws_backend.API.Repository.RepositoryRetrieval;
 import com.buenws.buenws_backend.API.Service.MessageSender.OTPMailSender;
@@ -37,8 +38,8 @@ public class OTPAuthService {
     }
 
     @Transactional
-    public boolean requestFactor(String contact_information, Locale locale) {
-        String normalizedContact = normalizeContact(contact_information);
+    public boolean requestFactor(Records.RequestOTPRequest requestOTPRequest) {
+        String normalizedContact = normalizeContact(requestOTPRequest.contact_information());
         Optional<OTPAuthEntity> resetCodeEntity = OTPAuthRepository.findByContact(normalizedContact);
 
         OTPAuthEntity otpAuthEntity = resetCodeEntity.orElseGet(
@@ -58,7 +59,7 @@ public class OTPAuthService {
             messageSender.SendMessage(
                     otpAuthEntity.getContact(),
                     newOTP,
-                    locale
+                    requestOTPRequest.language()
             );
 
             OTPAuthRepository.save(otpAuthEntity);

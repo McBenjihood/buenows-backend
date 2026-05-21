@@ -224,8 +224,8 @@ public class UserService {
 
     // Reset Password Logic
     @Transactional
-    public Records.ApiResponse<Void> RequestOTP(Records.RequestOTPRequest requestOTPRequest, Locale locale) {
-        otpAuthService.requestFactor(requestOTPRequest.contact_information(), locale);
+    public Records.ApiResponse<Void> RequestOTP(Records.RequestOTPRequest requestOTPRequest) {
+        otpAuthService.requestFactor(requestOTPRequest);
         return Records.ApiResponse.success(
                 "If an account exists, a verification email has been sent."
         );
