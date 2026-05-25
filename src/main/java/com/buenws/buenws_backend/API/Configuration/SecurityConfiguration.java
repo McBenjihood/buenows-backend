@@ -95,6 +95,9 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/user/auth").authenticated()
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
 
+                        .requestMatchers("/error").permitAll()
+
+
                         .anyRequest().authenticated()
                 )
                 .addFilterAfter(bearerTokenAuthFilter, BasicAuthenticationFilter.class);

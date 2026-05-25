@@ -278,11 +278,11 @@ public class UserService {
     }
 
     @Transactional
-    public Records.ApiResponse<Records.AdminUserResponse> updateUserRole(UUID userId, Records.AdminUpdateRoleRequest request) {
-        UserEntity targetUser = userRepository.findById(userId)
+    public Records.ApiResponse<Records.AdminUserResponse> updateUserRole(Records.AdminUpdateRoleRequest adminUpdateRoleRequest) {
+        UserEntity targetUser = userRepository.findById(adminUpdateRoleRequest.userID())
                 .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
 
-        String normalizedRole = normalizeRole(request.role());
+        String normalizedRole = normalizeRole(adminUpdateRoleRequest.role());
 
         if (!normalizedRole.equals("ROLE_USER") && !normalizedRole.equals("ROLE_ADMIN")) {
             throw new InvalidUserException("Role is not supported.", "INVALID_ROLE");
@@ -305,12 +305,12 @@ public class UserService {
     }
 
     @Transactional
-    public Records.ApiResponse<Records.AdminUserResponse> updateUserProfile(UUID userId, Records.AdminUpdateUserProfileRequest request) {
-        UserEntity targetUser = userRepository.findById(userId)
+    public Records.ApiResponse<Records.AdminUserResponse> updateUserProfile(Records.AdminUpdateUserProfileRequest adminUpdateUserProfileRequest) {
+        UserEntity targetUser = userRepository.findById(adminUpdateUserProfileRequest.userID())
                 .orElseThrow(() -> new InvalidUserException("User not found.", "INVALID_USER"));
 
-        targetUser.setFirst_name(normalizeOptionalText(request.first_name()));
-        targetUser.setLast_name(normalizeOptionalText(request.last_name()));
+        targetUser.setFirst_name(normalizeOptionalText(adminUpdateUserProfileRequest.first_name()));
+        targetUser.setLast_name(normalizeOptionalText(adminUpdateUserProfileRequest.last_name()));
 
         userRepository.save(targetUser);
 

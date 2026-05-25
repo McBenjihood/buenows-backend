@@ -64,7 +64,9 @@ public class Records
     ){}
     public record AdminUpdateRoleRequest(
             @NotBlank(message = "Role is required")
-            String role
+            String role,
+            @NotBlank(message = "UserID is required")
+            UUID userID
     ){}
     public record AdminUpdateUserProfileRequest(
             @NotBlank(message = "First name is required")
@@ -72,7 +74,9 @@ public class Records
             String first_name,
             @NotBlank(message = "Last name is required")
             @Size(max = 50)
-            String last_name
+            String last_name,
+            @NotBlank(message = "UserID is required")
+            UUID userID
     ){}
 
     //Requests
@@ -135,11 +139,13 @@ public class Records
             UUID verified_token
     ){}
 
-    //Image Stuff (Not ready yet.)
-    public record Image(
-
+    public record DeleteInquiryRequest(
+            @NotBlank(message = "InquiryID is required")
+            Long inquiryID
     ){}
-    public record getImageListRequest(
-            Array[] Images
+
+    public record DeleteUserRequest(
+            @NotBlank(message = "userID is required")
+            UUID userID
     ){}
 }

@@ -31,57 +31,52 @@ public class AdminController {
     public ResponseEntity<Records.ApiResponse<String>> adminTest(HttpServletRequest request) {
         rateLimitService.checkBucket("test:" + RequestUtil.getClientIp(request), 1);
         return ResponseEntity.ok(
-                Records.ApiResponse.success("Admin access granted.", "ADMIN_OK")
-        );
+                Records.ApiResponse.success("Admin access granted.", "ADMIN_OK"));
     }
 
     @GetMapping("/inquiries")
-    public ResponseEntity<Records.ApiResponse<List<Records.InquiryResponse>>> getAllInquiries(HttpServletRequest request) {
+    public ResponseEntity<Records.ApiResponse<List<Records.InquiryResponse>>> getAllInquiries(
+            HttpServletRequest request) {
         rateLimitService.checkBucket("inquiries/get:" + RequestUtil.getClientIp(request), 1);
         return ResponseEntity.ok(inquiryService.getAllInquiries());
     }
 
-    @DeleteMapping("/inquiries/{inquiryId}")
+    @DeleteMapping("/inquiries/delete")
     public ResponseEntity<Records.ApiResponse<Void>> deleteInquiry(
-            @PathVariable Long inquiryId,
-            HttpServletRequest request
-    ) {
+            @Valid @RequestBody Records.DeleteInquiryRequest deleteInquiryRequest,
+            HttpServletRequest request) {
         rateLimitService.checkBucket("inquiries/delete:" + RequestUtil.getClientIp(request), 15);
-        return ResponseEntity.ok(inquiryService.deleteInquiryForAdmin(inquiryId));
+        return ResponseEntity.ok(inquiryService.deleteInquiryForAdmin(deleteInquiryRequest.inquiryID()));
     }
 
     @GetMapping("/users")
-    public ResponseEntity<Records.ApiResponse<List<Records.AdminUserResponse>>> getAllUsers(HttpServletRequest request) {
+    public ResponseEntity<Records.ApiResponse<List<Records.AdminUserResponse>>> getAllUsers(
+            HttpServletRequest request) {
         rateLimitService.checkBucket("users/get:" + RequestUtil.getClientIp(request), 1);
         return ResponseEntity.ok(userService.getAllUsersForAdmin());
     }
 
-    @PutMapping("/users/{userId}/role")
+    @PutMapping("/users/update-role")
     public ResponseEntity<Records.ApiResponse<Records.AdminUserResponse>> updateUserRole(
-            @PathVariable UUID userId,
-            @Valid @RequestBody Records.AdminUpdateRoleRequest request,
-            HttpServletRequest servletRequest
-    ) {
+            @Valid @RequestBody Records.AdminUpdateRoleRequest adminUpdateRoleRequest,
+            HttpServletRequest servletRequest) {
         rateLimitService.checkBucket("users/update-role:" + RequestUtil.getClientIp(servletRequest), 15);
-        return ResponseEntity.ok(userService.updateUserRole(userId, request));
+        return ResponseEntity.ok(userService.updateUserRole(adminUpdateRoleRequest));
     }
 
-    @PutMapping("/users/{userId}/profile")
+    @PutMapping("/users/update-profile")
     public ResponseEntity<Records.ApiResponse<Records.AdminUserResponse>> updateUserProfile(
-            @PathVariable UUID userId,
-            @Valid @RequestBody Records.AdminUpdateUserProfileRequest request,
-            HttpServletRequest servletRequest
-    ) {
+            @Valid @RequestBody Records.AdminUpdateUserProfileRequest adminUpdateUserProfileRequest,
+            HttpServletRequest servletRequest) {
         rateLimitService.checkBucket("users/update-profile:" + RequestUtil.getClientIp(servletRequest), 15);
-        return ResponseEntity.ok(userService.updateUserProfile(userId, request));
+        return ResponseEntity.ok(userService.updateUserProfile(adminUpdateUserProfileRequest));
     }
 
-    @DeleteMapping("/users/{userId}")
+    @DeleteMapping("/users/delete")
     public ResponseEntity<Records.ApiResponse<Void>> deleteUser(
-            @PathVariable UUID userId,
-            HttpServletRequest request
-    ) {
+            @Valid @RequestBody Records.DeleteUserRequest deleteUserRequest,
+            HttpServletRequest request) {
         rateLimitService.checkBucket("users/delete:" + RequestUtil.getClientIp(request), 20);
-        return ResponseEntity.ok(userService.deleteUserForAdmin(userId));
+        return ResponseEntity.ok(userService.deleteUserForAdmin(deleteUserRequest.userID()));
     }
 }
