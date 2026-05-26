@@ -33,7 +33,11 @@
 
 	<dependencies>
 
-
+		<dependency>
+			<groupId>io.awspring.cloud</groupId>
+			<artifactId>spring-cloud-aws-starter-secrets-manager</artifactId>
+			<version>4.0.2</version>
+		</dependency>
 		<!-- Web & Monitoring: Core Spring Boot web features and health endpoints -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
