@@ -1,6 +1,7 @@
 name: Build Java App and Push Docker Image to AWS ECR
 
 on:
+  workflow_dispatch:
   push:
     branches: [ master ]
 jobs:
