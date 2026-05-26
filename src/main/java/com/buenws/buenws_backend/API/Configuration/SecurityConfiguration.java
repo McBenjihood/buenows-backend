@@ -56,10 +56,9 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .ignoringRequestMatchers(
+                                "/api/admin/**",
                                 "/api/user/auth/register",
                                 "/api/user/auth/login",
-                                "/api/user/auth/refresh",
-                                "/api/user/auth/logout",
                                 "/api/user/request-otp",
                                 "/api/user/verify-otp",
                                 "/api/user/change-password",
@@ -81,6 +80,7 @@ public class SecurityConfiguration {
 
                         .requestMatchers("/api/user/auth/register").permitAll()
                         .requestMatchers("/api/user/auth/login").permitAll()
+                        .requestMatchers("/api/user/auth/csrf").permitAll()
                         .requestMatchers("/api/user/auth/refresh").permitAll()
                         .requestMatchers("/api/user/auth/logout").permitAll()
 

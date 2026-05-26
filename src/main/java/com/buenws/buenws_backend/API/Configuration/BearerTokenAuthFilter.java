@@ -36,6 +36,7 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
 
         return path.equals("/api/user/auth/login")
                 || path.equals("/api/user/auth/register")
+                || path.equals("/api/user/auth/csrf")
                 || path.equals("/api/user/auth/refresh")
                 || path.equals("/api/user/auth/logout")
                 || path.equals("/actuator/health")

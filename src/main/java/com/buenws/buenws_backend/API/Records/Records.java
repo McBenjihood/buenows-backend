@@ -36,6 +36,11 @@ public class Records
             String email,
             java.util.List<String> authorities
     ){}
+    public record CsrfTokenResponse(
+            String header_name,
+            String parameter_name,
+            String token
+    ){}
     public record ErrorResponse(
             String errorCode
     ){}
@@ -65,7 +70,7 @@ public class Records
     public record AdminUpdateRoleRequest(
             @NotBlank(message = "Role is required")
             String role,
-            @NotBlank(message = "UserID is required")
+            @NotNull(message = "UserID is required")
             UUID userID
     ){}
     public record AdminUpdateUserProfileRequest(
@@ -75,7 +80,7 @@ public class Records
             @NotBlank(message = "Last name is required")
             @Size(max = 50)
             String last_name,
-            @NotBlank(message = "UserID is required")
+            @NotNull(message = "UserID is required")
             UUID userID
     ){}
 
@@ -140,12 +145,12 @@ public class Records
     ){}
 
     public record DeleteInquiryRequest(
-            @NotBlank(message = "InquiryID is required")
+            @NotNull(message = "InquiryID is required")
             Long inquiryID
     ){}
 
     public record DeleteUserRequest(
-            @NotBlank(message = "userID is required")
+            @NotNull(message = "userID is required")
             UUID userID
     ){}
 }

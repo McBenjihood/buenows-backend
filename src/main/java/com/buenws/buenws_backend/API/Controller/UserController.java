@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,6 +56,22 @@ public class UserController {
     }
 
     //Auth Endpoints
+    @GetMapping("auth/csrf")
+    public ResponseEntity<Records.ApiResponse<Records.CsrfTokenResponse>> csrfToken(CsrfToken csrfToken) {
+        String token = csrfToken.getToken();
+
+        return ResponseEntity.ok(
+                Records.ApiResponse.success(
+                        "CSRF token generated.",
+                        new Records.CsrfTokenResponse(
+                                csrfToken.getHeaderName(),
+                                csrfToken.getParameterName(),
+                                token
+                        )
+                )
+        );
+    }
+
     @GetMapping("auth")
     public ResponseEntity<Records.ApiResponse<Records.AuthCheckResponse>> checkAuth(
             Authentication authentication,
