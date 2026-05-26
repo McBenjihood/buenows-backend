@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS user_authorities;
+DROP TABLE IF EXISTS user_authorities;I9#441Bcg&8*cI#%ARs
 DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS inquiries;
 DROP TABLE IF EXISTS user_assets;
@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS users CASCADE;
 
 CREATE TABLE users
 (
-    user_id    uuid PRIMARY KEY DEFAULT uuidv7(),
+    user_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email      VARCHAR(255) UNIQUE NOT NULL,
     first_name VARCHAR(50)         NOT NULL,
     last_name  VARCHAR(50)         NOT NULL,
