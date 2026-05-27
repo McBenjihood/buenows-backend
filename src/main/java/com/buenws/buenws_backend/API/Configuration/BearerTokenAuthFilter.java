@@ -36,6 +36,11 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
 
         return HttpMethod.OPTIONS.matches(request.getMethod())
                 || path.equals("/actuator/health")
+                || path.startsWith("/chatbot/")
+                || path.equals("/api/chatbot/config")
+                || path.equals("/api/chatbot/health")
+                || path.equals("/api/chatbot/session")
+                || path.equals("/api/chatbot/chat")
                 || path.equals("/api/inquiry/contact-submissions")
                 || path.equals("/api/user/auth/csrf")
                 || path.equals("/api/user/auth/login")

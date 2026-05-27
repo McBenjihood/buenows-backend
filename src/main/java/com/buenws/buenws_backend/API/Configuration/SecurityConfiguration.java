@@ -56,6 +56,8 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .ignoringRequestMatchers(
+                                "/api/chatbot/session",
+                                "/api/chatbot/chat",
                                 "/api/admin/inquiries",
                                 "/api/admin/inquiries/delete",
                                 "/api/admin/test",
@@ -82,6 +84,11 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/chatbot/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/chatbot/config").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/chatbot/health").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/chatbot/session").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/chatbot/chat").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/inquiry/contact-submissions").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/auth/login").permitAll()

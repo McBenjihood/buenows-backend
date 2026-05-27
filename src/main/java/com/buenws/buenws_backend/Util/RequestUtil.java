@@ -10,7 +10,6 @@ public class RequestUtil {
 
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            System.out.println("Valid X-Forwarded-For header found in Request");
             String[] ips = xForwardedFor.split(",");
             String clientIp = ips[0].trim();
             if (!clientIp.isEmpty() && !"unknown".equalsIgnoreCase(clientIp)) {
@@ -18,6 +17,12 @@ public class RequestUtil {
             }
         }
 
-        return xForwardedFor;
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+
+        String remoteAddr = request.getRemoteAddr();
+        return remoteAddr == null || remoteAddr.isBlank() ? "unknown" : remoteAddr;
     }
 }
