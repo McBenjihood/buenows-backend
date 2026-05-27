@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS users CASCADE;
 
 CREATE TABLE users
 (
-    user_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    uuid PRIMARY KEY DEFAULT NOT NULL,
     email      VARCHAR(255) UNIQUE NOT NULL,
     first_name VARCHAR(50)         NOT NULL,
     last_name  VARCHAR(50)         NOT NULL,

@@ -12,13 +12,8 @@ import java.util.UUID;
 public class UserEntity {
 
     //Constructors
-    public UserEntity(){}
-    public UserEntity(String email){
-        this.email = email;
-    }
-    public UserEntity(String email, List<String> authorities) {
-        this.authorities = authorities;
-        this.email = email;
+    public UserEntity(){
+        this.id = UUID.randomUUID();
     }
 
     //Columns
