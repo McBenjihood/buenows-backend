@@ -103,7 +103,7 @@ public class SecurityConfiguration {
                 .addFilterAfter(bearerTokenAuthFilter, BasicAuthenticationFilter.class);
 
         if (requireHttps) {
-            http.requiresChannel(channel -> channel.anyRequest().requiresSecure());
+            http.redirectToHttps(Customizer.withDefaults());
         }
 
         return http.build();
