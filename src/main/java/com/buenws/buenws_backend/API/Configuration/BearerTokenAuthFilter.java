@@ -34,19 +34,19 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
 
-        return path.equals("/api/user/auth/login")
-                || path.equals("/api/user/auth/register")
-                || path.equals("/api/user/auth/csrf")
-                || path.equals("/api/user/auth/refresh")
-                || path.equals("/api/user/auth/logout")
+        return HttpMethod.OPTIONS.matches(request.getMethod())
                 || path.equals("/actuator/health")
-                || path.startsWith("/actuator/health/")
-                || path.equals("/api/user/request-reset-password")
-                || path.equals("/api/user/reset-password")
+                || path.equals("/api/inquiry/contact-submissions")
+                || path.equals("/api/user/auth/csrf")
+                || path.equals("/api/user/auth/login")
+                || path.equals("/api/user/auth/logout")
+                || path.equals("/api/user/auth/refresh")
+                || path.equals("/api/user/auth/register")
+                || path.equals("/api/user/change-password")
                 || path.equals("/api/user/request-otp")
                 || path.equals("/api/user/verify-otp")
-                || path.equals("/api/inquiry/contact-submissions")
-                || path.startsWith("/images/");
+                || path.equals("/error")
+                || path.equals("/health");
     }
 
     @Override
