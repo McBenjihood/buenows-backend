@@ -28,7 +28,7 @@ public final class ChatbotText {
                     Map.entry("openAiInvalid", "Der OpenAI API Key konnte nicht verwendet werden. Bitte pruefe die Server-Konfiguration."),
                     Map.entry("chatUnavailable", "Der Chatbot ist gerade nicht erreichbar. Bitte versuche es spaeter erneut."),
                     Map.entry("rejected", "Dabei kann ich hier nicht helfen. Ich unterstuetze nur bei Fragen und Projektanfragen zu {companyName} und den angebotenen digitalen Loesungen."),
-                    Map.entry("contactMissing", "Wie koennen wir Sie am besten kontaktieren?")
+                    Map.entry("contactMissing", "Wie k\u00f6nnen wir Sie am besten kontaktieren?")
             ),
             "en", Map.ofEntries(
                     Map.entry("tooManyMessages", "Too many messages. Please wait briefly and try again."),

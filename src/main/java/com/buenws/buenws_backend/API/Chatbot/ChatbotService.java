@@ -27,6 +27,11 @@ public class ChatbotService {
     private static final Pattern UNSAFE_PROMISE_PATTERN = Pattern.compile("\\b(we guarantee|we promise|guaranteed results|guaranteed leads|guaranteed customers|wir garantieren|wir versprechen|garantierte kunden|garantierte anfragen|sicher mehr kunden|sicher mehr anfragen)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern LANGUAGE_SWITCH_PATTERN = Pattern.compile("\\b(antworte|antworten|reply|respond|answer)\\b.{0,40}\\b(deutsch|englisch|german|english)\\b", Pattern.CASE_INSENSITIVE);
 
+    private static final Pattern THANK_YOU_INQUIRY_PATTERN = Pattern.compile("\\b(Vielen Dank fuer Ihre Anfrage|Vielen Dank fÃ¼r Ihre Anfrage|Thank you for your inquiry)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern WEAK_QUESTION_PATTERN = Pattern.compile("\\b(Could you|K.nnten)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MARKDOWN_LINK_PATTERN = Pattern.compile("\\[[^\\]]+]\\(https?://[^)]+\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern EARLY_HANDOFF_PATTERN = Pattern.compile("\\b(contact form|contact page|project request|Projekt anfragen|Kontaktformular|Kontaktseite|Formular|Anfrageformular|Handoff)\\b|https?://\\S+", Pattern.CASE_INSENSITIVE);
+
     private final ChatbotProperties properties;
     private final ChatbotCompanyConfigService companyConfigService;
     private final ChatbotSessionStore sessionStore;
@@ -141,6 +146,7 @@ public class ChatbotService {
             metadata = merge(metadata, openAiClient.repairReply(promptBuilder.repairInstructions(config, classification, language, issue), buildConversationForReply(session), issue, reply));
             reply = ChatbotText.cleanReply(metadata.reply());
         }
+        if (needsEarlyProjectFallback(reply, session) || needsWeakProjectQuestionFallback(reply, session)) reply = buildProjectFollowUpFallback(session, language);
 
         if (needsStructuredHandoffRecovery(session, reply)) {
             metadata = merge(metadata, openAiClient.extractHandoffMetadata(promptBuilder.handoffMetadataInstructions(config, language), buildConversationForReply(session), reply));
@@ -215,16 +221,31 @@ public class ChatbotService {
 
     private String getReplyQualityIssue(String reply, ChatSession session, AssistantMetadata metadata, String language) {
         if (replyLooksWrongLanguage(reply, language)) return "The reply is not in the fixed session language.";
+        if (MARKDOWN_LINK_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses a Markdown link. Use plain text only. Do not link to the contact form before final handoff.";
+        if (needsEarlyProjectFallback(reply, session)) return "The reply redirects to the contact form too early. Continue the conversation by asking one practical follow-up question in chat.";
         if (metadata.readyForHandoff() && !replyLooksLikeTemplate(reply)) return "The metadata says handoff is ready but the reply does not use the exact contact-form template.";
         if (contactExtractor.conversationHasContactInfo(session.messages()) && asksForContactOption(reply)) return "The user already provided contact information. Generate the contact-form template if the project is concrete enough.";
         if (lastMessageHasContactAndLanguageSwitch(session) && !replyLooksLikeTemplate(reply)) return "The user asked to switch language and provided contact information. Keep the fixed language and generate the template if context is clear.";
-        if (BAD_FILLER_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses filler or weak customer-service phrasing.";
+        if (BAD_FILLER_PATTERN.matcher(reply == null ? "" : reply).find() || THANK_YOU_INQUIRY_PATTERN.matcher(reply == null ? "" : reply).find() || WEAK_QUESTION_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses filler or weak customer-service phrasing. Ask directly without 'Could you' or 'Koennten Sie'.";
         if (UNSAFE_PROMISE_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply makes a promise or guarantee.";
         return null;
     }
 
     private boolean needsStructuredHandoffRecovery(ChatSession session, String reply) {
         return contactExtractor.conversationHasContactInfo(session.messages()) && !replyLooksLikeTemplate(reply) && (lastMessageHasContactAndLanguageSwitch(session) || asksForContactOption(reply) || asksOptionalDetailAfterContact(session, reply));
+    }
+    private boolean needsEarlyProjectFallback(String reply, ChatSession session) {
+        String value = reply == null ? "" : reply;
+        return !contactExtractor.conversationHasContactInfo(session.messages())
+                && !replyLooksLikeTemplate(value)
+                && EARLY_HANDOFF_PATTERN.matcher(value).find();
+    }
+    private boolean needsWeakProjectQuestionFallback(String reply, ChatSession session) {
+        String value = reply == null ? "" : reply;
+        return !contactExtractor.conversationHasContactInfo(session.messages())
+                && !replyLooksLikeTemplate(value)
+                && getUserMessageCount(session) <= 1
+                && (BAD_FILLER_PATTERN.matcher(value).find() || THANK_YOU_INQUIRY_PATTERN.matcher(value).find() || WEAK_QUESTION_PATTERN.matcher(value).find());
     }
     private boolean replyLooksLikeTemplate(String reply) { return TEMPLATE_PATTERN.matcher(reply == null ? "" : reply).find(); }
     private boolean asksForContactOption(String reply) { return CONTACT_ASK_PATTERN.matcher(reply == null ? "" : reply).find() && (reply == null || reply.contains("?")); }
@@ -247,6 +268,25 @@ public class ChatbotService {
     private boolean isLanguageSwitchRequest(String value) { return LANGUAGE_SWITCH_PATTERN.matcher(value == null ? "" : value).find(); }
     private String languageLockSentence(String language) { return "de".equals(language) ? "Die Sitzungssprache bleibt Deutsch." : "The session language stays fixed in English."; }
     private String buildLanguageSafeFallback(ChatSession session, String language) { String question = getLastAssistantQuestion(session); return !question.isBlank() ? question : ("de".equals(language) ? "Welche Information ist fuer die Anfrage als Naechstes am wichtigsten?" : "What information is most important for the request next?"); }
+    private String buildProjectFollowUpFallback(ChatSession session, String language) {
+        String text = conversationText(session).toLowerCase(Locale.ROOT);
+        if (containsAny(text, "rechnung", "rechnungen", "invoice", "invoicing")) {
+            return "de".equals(language)
+                    ? "Welche Software oder welchen aktuellen Ablauf nutzen Sie heute f\u00fcr die Rechnungen?"
+                    : "What software or current process do you use for invoicing today?";
+        }
+        if (containsAny(text, "website", "webseite", "redesign")) {
+            return "de".equals(language)
+                    ? "Gibt es bereits eine bestehende Website, die erneuert werden soll?"
+                    : "Is there already an existing website that should be redesigned?";
+        }
+        if (containsAny(text, "automation", "automatisierung", "automate", "automatisieren")) {
+            return "de".equals(language)
+                    ? "Welcher Ablauf soll als Erstes automatisiert werden?"
+                    : "Which process should be automated first?";
+        }
+        return buildLanguageSafeFallback(session, language);
+    }
     private String enforceFinalReplySafety(String reply) { return ChatbotText.cleanReply(reply).replaceAll("(?i)\\bwe guarantee\\b", "we can discuss").replaceAll("(?i)\\bguaranteed\\b", "planned").replaceAll("(?i)\\bwir garantieren\\b", "wir koennen pruefen").trim(); }
     private String inferDesiredSolution(ChatSession session, String reply, String language) {
         String text = (conversationText(session) + "\n" + (reply == null ? "" : reply)).toLowerCase(Locale.ROOT);
