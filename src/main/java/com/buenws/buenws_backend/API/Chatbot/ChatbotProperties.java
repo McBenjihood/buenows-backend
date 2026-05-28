@@ -90,7 +90,13 @@ public class ChatbotProperties {
     public int sessionRateLimitPerDay() { return sessionRateLimitPerDay; }
     public int sessionMessageLimit() { return sessionMessageLimit; }
     public Path companyConfigPath() { return companyConfigPath; }
-    public boolean openAiConfigured() { return !openAiApiKey.isBlank(); }
+    public boolean openAiConfigured() {
+        String normalized = openAiApiKey.toLowerCase();
+        return !openAiApiKey.isBlank()
+                && openAiApiKey.startsWith("sk-")
+                && !normalized.contains("replace_with")
+                && !normalized.contains("placeholder");
+    }
 
     private static String clean(String value) {
         return value == null ? "" : value.trim();
