@@ -225,6 +225,94 @@ class ChatbotServiceSessionLifecycleTest {
         assertFalse(third.reply().contains("076 749 69 52"));
     }
 
+    @Test
+    void answeredExistingWebsiteQuestionIsNotRepeated() {
+        ServiceFixture fixture = fixture(
+                new AssistantMetadata(
+                        "Welche Aufgaben soll der KI-Chatbot auf der Website übernehmen?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                ),
+                new AssistantMetadata(
+                        "Gibt es bereits eine bestehende Website, die erneuert werden soll?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                ),
+                new AssistantMetadata(
+                        "Gibt es bereits eine bestehende Website, die erneuert werden soll?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                )
+        );
+
+        ChatResponse first = fixture.service().chat(
+                null,
+                "de",
+                "Ich hätte gerne eine Webseite mit einem KI-Chatbot"
+        );
+        ChatResponse second = fixture.service().chat(first.sessionId(), "de", "momentan habe ich gar nichts");
+        ChatResponse third = fixture.service().chat(second.sessionId(), "de", "nein");
+
+        assertFalse(third.sessionEnded());
+        assertTrue(third.reply().contains("KI-Chatbot"));
+        assertFalse(third.reply().contains("bestehende Website"));
+    }
+
+    @Test
+    void websiteChatbotInquiryDoesNotAskForCurrentToolOnFirstReply() {
+        ServiceFixture fixture = fixture(
+                new AssistantMetadata(
+                        "Was ist der aktuelle Ablauf oder das bestehende Tool, das Sie verwenden?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                )
+        );
+
+        ChatResponse response = fixture.service().chat(
+                null,
+                "de",
+                "Ich hätte gerne eine Webseite mit einem KI-Chatbot"
+        );
+
+        assertFalse(response.reply().contains("aktueller Ablauf"));
+        assertFalse(response.reply().contains("bestehende Tool"));
+    }
+
+    @Test
+    void awkwardWebsiteChatbotQuestionIsReplaced() {
+        ServiceFixture fixture = fixture(
+                new AssistantMetadata(
+                        "Was soll der KI-Chatbot den Besuchern Ihrer Webseite helfen?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                )
+        );
+
+        ChatResponse response = fixture.service().chat(
+                null,
+                "de",
+                "Ich hätte gerne eine Webseite mit einem KI-Chatbot"
+        );
+
+        assertTrue(response.reply().contains("Welche Aufgaben"));
+        assertFalse(response.reply().contains("den Besuchern"));
+    }
+
     private ServiceFixture fixture(AssistantMetadata... replies) {
         ChatbotProperties properties = new ChatbotProperties(
                 "sk-test",

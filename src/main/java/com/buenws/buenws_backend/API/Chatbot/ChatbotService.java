@@ -32,6 +32,8 @@ public class ChatbotService {
     private static final Pattern MARKDOWN_LINK_PATTERN = Pattern.compile("\\[[^\\]]+]\\(https?://[^)]+\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern EARLY_HANDOFF_PATTERN = Pattern.compile("\\b(contact form|contact page|project request|Projekt anfragen|Kontaktformular|Kontaktseite|Formular|Anfrageformular|Handoff)\\b|https?://\\S+", Pattern.CASE_INSENSITIVE);
     private static final Pattern CONTACT_PREFERENCE_PATTERN = Pattern.compile("\\b(sms|text message|telefon|phone|call|anruf|whatsapp|e-mail|email|mail)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CURRENT_PROCESS_TOOL_ASK_PATTERN = Pattern.compile("\\b(aktuelle?r? Ablauf|bestehende?s Tool|current process|current tool|software|tools?)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern AWKWARD_CHATBOT_TASK_ASK_PATTERN = Pattern.compile("\\bWas soll der KI-Chatbot\\b.{0,140}\\bhelfen\\b", Pattern.CASE_INSENSITIVE);
 
     private final ChatbotProperties properties;
     private final ChatbotCompanyConfigService companyConfigService;
@@ -149,11 +151,12 @@ public class ChatbotService {
             metadata = merge(metadata, openAiClient.repairReply(promptBuilder.repairInstructions(config, classification, language, issue), buildConversationForReply(session), issue, reply));
             reply = ChatbotText.cleanReply(metadata.reply());
         }
-        if (needsEarlyProjectFallback(reply, session) || needsWeakProjectQuestionFallback(reply, session)) reply = buildProjectFollowUpFallback(session, language);
+        if (needsEarlyProjectFallback(reply, session) || needsWeakProjectQuestionFallback(reply, session) || asksWrongCurrentToolQuestionForWebsiteChatbot(reply, session) || asksAwkwardChatbotTaskQuestion(reply)) reply = buildProjectFollowUpFallback(session, language);
         if (asksForContactOption(reply) && !hasEnoughProjectContextForHandoff(session)) reply = buildProjectFollowUpFallback(session, language);
         if (asksForContactOption(reply) && isContactPreferenceWithoutConcreteInfo(getLastUserMessage(session))) reply = buildConcreteContactQuestion(getLastUserMessage(session), language);
         if (isAmbiguousChannelReply(session)) reply = buildChannelClarificationQuestion(getLastUserMessage(session), language);
         if (contactExtractor.textHasContactInfo(getLastUserMessage(session)) && !hasEnoughProjectContextForHandoff(session)) reply = buildProjectFollowUpFallback(session, language);
+        if (repeatsPreviousAssistantQuestion(reply, session)) reply = buildProjectFollowUpFallback(session, language);
 
         if (needsStructuredHandoffRecovery(session, reply)) {
             metadata = merge(metadata, openAiClient.extractHandoffMetadata(promptBuilder.handoffMetadataInstructions(config, language), buildConversationForReply(session), reply));
@@ -233,6 +236,9 @@ public class ChatbotService {
         if (MARKDOWN_LINK_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses a Markdown link. Use plain text only. Do not link to the contact form before final handoff.";
         if (needsEarlyProjectFallback(reply, session)) return "The reply redirects to the contact form too early. Continue the conversation by asking one practical follow-up question in chat.";
         if (asksForContactOption(reply) && !hasEnoughProjectContextForHandoff(session)) return "The reply asks for contact information before the project need is clear. Ask what process, task or current workflow should be improved first.";
+        if (repeatsPreviousAssistantQuestion(reply, session)) return "The reply repeats the previous assistant question after the user answered it. Ask the next useful project question instead.";
+        if (asksWrongCurrentToolQuestionForWebsiteChatbot(reply, session)) return "The user wants a website with an AI chatbot. Ask what the chatbot should do on the website instead of asking for a current process or tool.";
+        if (asksAwkwardChatbotTaskQuestion(reply)) return "The German question is grammatically awkward. Ask: Welche Aufgaben soll der KI-Chatbot auf der Website übernehmen?";
         if (metadata.readyForHandoff() && !replyLooksLikeTemplate(reply)) return "The metadata says handoff is ready but the reply does not use the exact contact-form template.";
         if (contactExtractor.conversationHasContactInfo(session.messages()) && asksForContactOption(reply)) return "The user already provided contact information. Generate the contact-form template if the project is concrete enough.";
         if (lastMessageHasContactAndLanguageSwitch(session) && !replyLooksLikeTemplate(reply)) return "The user asked to switch language and provided contact information. Keep the fixed language and generate the template if context is clear.";
@@ -286,6 +292,16 @@ public class ChatbotService {
                     : "What software or current process do you use for invoicing today?";
         }
         if (containsAny(text, "website", "webseite", "redesign")) {
+            if (containsAny(text, "chatbot", "chat bot", "ki chatbot", "ai chatbot")) {
+                return "de".equals(language)
+                        ? "Welche Aufgaben soll der KI-Chatbot auf der Website übernehmen?"
+                        : "What tasks should the AI chatbot handle on the website?";
+            }
+            if (hasAnsweredNoToExistingWebsiteQuestion(session)) {
+                return "de".equals(language)
+                        ? "Welche Inhalte oder Funktionen soll die neue Website haben?"
+                        : "What content or features should the new website include?";
+            }
             return "de".equals(language)
                     ? "Gibt es bereits eine bestehende Website, die erneuert werden soll?"
                     : "Is there already an existing website that should be redesigned?";
@@ -342,6 +358,48 @@ public class ChatbotService {
         String lastUser = getLastUserMessage(session);
         String lastQuestion = getLastAssistantQuestion(session);
         return getUserMessageCount(session) > 1 && isContactPreferenceWithoutConcreteInfo(lastUser) && !lastQuestion.isBlank() && !asksForContactOption(lastQuestion);
+    }
+    private boolean repeatsPreviousAssistantQuestion(String reply, ChatSession session) {
+        String current = normalizeQuestion(reply);
+        String previous = normalizeQuestion(getLastAssistantQuestion(session));
+        return !current.isBlank() && !previous.isBlank() && (current.equals(previous) || current.contains(previous) || previous.contains(current));
+    }
+    private boolean asksWrongCurrentToolQuestionForWebsiteChatbot(String reply, ChatSession session) {
+        String text = conversationText(session).toLowerCase(Locale.ROOT);
+        return getUserMessageCount(session) <= 1
+                && containsAny(text, "website", "webseite")
+                && containsAny(text, "chatbot", "chat bot", "ki chatbot", "ai chatbot")
+                && CURRENT_PROCESS_TOOL_ASK_PATTERN.matcher(reply == null ? "" : reply).find();
+    }
+    private boolean asksAwkwardChatbotTaskQuestion(String reply) {
+        return AWKWARD_CHATBOT_TASK_ASK_PATTERN.matcher(reply == null ? "" : reply).find();
+    }
+    private String normalizeQuestion(String value) {
+        String text = value == null ? "" : value;
+        int questionMark = text.indexOf('?');
+        if (questionMark >= 0) text = text.substring(0, questionMark + 1);
+        return text.toLowerCase(Locale.ROOT)
+                .replace('ä', 'a')
+                .replace('ö', 'o')
+                .replace('ü', 'u')
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim();
+    }
+    private boolean hasAnsweredNoToExistingWebsiteQuestion(ChatSession session) {
+        List<ConversationMessage> messages = session.messages();
+        for (int i = messages.size() - 1; i >= 1; i--) {
+            ConversationMessage message = messages.get(i);
+            if (!"user".equals(message.role())) continue;
+            String answer = normalizeQuestion(message.content());
+            if (!containsAny(answer, "nein", "no", "keine", "nichts", "gar nichts")) continue;
+            ConversationMessage previous = messages.get(i - 1);
+            if ("assistant".equals(previous.role()) && asksAboutExistingWebsite(previous.content())) return true;
+        }
+        return false;
+    }
+    private boolean asksAboutExistingWebsite(String value) {
+        String normalized = normalizeQuestion(value);
+        return containsAny(normalized, "bestehende website", "bestehende webseite", "existing website", "website erneuert", "webseite erneuert", "redesigned");
     }
     private String buildConcreteContactQuestion(String lastUserMessage, String language) {
         String text = lastUserMessage == null ? "" : lastUserMessage.toLowerCase(Locale.ROOT);

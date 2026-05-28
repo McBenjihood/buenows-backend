@@ -55,6 +55,7 @@ public class PromptBuilder {
                 "Never redirect the user to the contact form to provide missing details. Missing details must be asked in this chat, one question at a time.",
                 "Do not mention the contact form, contact page, project request button, or handoff URL before the final contact-form template.",
                 "For a first project message, ask the single next most useful missing detail, usually the current process/tool, existing website, or most important function.",
+                "For a website with an AI chatbot, ask what the chatbot should help visitors with or what website functions are needed. Do not ask for a current process/tool unless the user describes an automation workflow.",
                 "For a first or second project message without contact information, do not thank-and-redirect. Ask one concise follow-up question in the chat.",
                 "For vague AI or automation interest, ask what process, task, or customer interaction should be improved first.",
                 "If the user asks to switch language, briefly state that the session language stays fixed and continue in the fixed language.",
