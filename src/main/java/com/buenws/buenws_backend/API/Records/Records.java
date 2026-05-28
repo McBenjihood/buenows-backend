@@ -126,6 +126,7 @@ public class Records
             @Email(message = "Invalid contact format")
             @NotBlank(message = "Email is required")
             String contact_information,
+            @NotBlank(message = "Email Language is required")
             String language
     ){}
     public record VerifyOTPRequest(

@@ -18,7 +18,6 @@ public class UserEntity {
 
     //Columns
     @Id
-    @GeneratedValue
     @Column(name = "user_id", updatable = false, nullable = false)
     private UUID id;
 
@@ -53,6 +52,7 @@ public class UserEntity {
     public UUID getId() {
         return id;
     }
+    public void setId(UUID id) {this.id = id;}
 
     public List<String> getAuthorities() {
         return authorities;
