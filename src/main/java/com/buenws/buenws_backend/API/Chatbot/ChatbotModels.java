@@ -17,8 +17,7 @@ public final class ChatbotModels {
     public record SessionResponse(String sessionId, String language) {}
     public record ChatRequest(String sessionId, String language, @Size(max = 4000) String message) {}
     public record ChatResponse(String reply, String sessionId, String language, boolean sessionEnded) {}
-    public record HealthResponse(String status, String service, String chatMode, boolean openAiConfigured,
-                                 boolean configLoaded, int activeSessions, String time) {}
+    public record HealthResponse(String status, String service, String time, Map<String, Object> details) {}
     public record ErrorResponse(String error, String code, Integer retryAfter) {
         public ErrorResponse(String error) { this(error, null, null); }
     }

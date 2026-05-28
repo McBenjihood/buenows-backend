@@ -26,10 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChatbotController {
     private final ChatbotService chatbotService;
     private final ChatbotRateLimitService rateLimitService;
+    private final ChatbotProperties properties;
 
-    public ChatbotController(ChatbotService chatbotService, ChatbotRateLimitService rateLimitService) {
+    public ChatbotController(ChatbotService chatbotService, ChatbotRateLimitService rateLimitService, ChatbotProperties properties) {
         this.chatbotService = chatbotService;
         this.rateLimitService = rateLimitService;
+        this.properties = properties;
     }
 
     @GetMapping("/health")
@@ -46,16 +48,23 @@ public class ChatbotController {
     @PostMapping("/session")
     public ResponseEntity<SessionResponse> session(@RequestBody(required = false) SessionRequest sessionRequest, HttpServletRequest request) {
         String language = sessionRequest == null ? null : sessionRequest.language();
-        rateLimitService.checkSessionLimits(ChatbotRequestUtil.getClientKey(request), ChatbotText.resolveLanguage(language));
+        rateLimitService.checkSessionLimits(ChatbotRequestUtil.getClientKey(request, properties), ChatbotText.resolveLanguage(language));
         return ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.CACHE_CONTROL, "no-store").body(chatbotService.createSession(language));
     }
 
     @PostMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@Valid @RequestBody ChatRequest chatRequest, HttpServletRequest request) {
         String language = ChatbotText.resolveLanguage(chatRequest == null ? null : chatRequest.language());
-        rateLimitService.checkChatLimits(ChatbotRequestUtil.getClientKey(request), language);
-        ChatResponse response = chatbotService.chat(chatRequest == null ? null : chatRequest.sessionId(), language, chatRequest == null ? null : chatRequest.message());
-        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(response);
+        String sessionId = chatRequest == null ? null : chatRequest.sessionId();
+        String responseLanguage = chatbotService.resolveLanguageForRequest(sessionId, language);
+        rateLimitService.checkChatLimits(ChatbotRequestUtil.getClientKey(request, properties), responseLanguage);
+        try {
+            ChatResponse response = chatbotService.chat(sessionId, language, chatRequest == null ? null : chatRequest.message());
+            return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(response);
+        } catch (OpenAiResponsesClient.OpenAiClientException exception) {
+            HttpStatus status = exception.status() == 401 ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.INTERNAL_SERVER_ERROR;
+            throw new ChatbotUnavailableException(ChatbotText.t(responseLanguage, "chatUnavailable"), status.value());
+        }
     }
 
     @ExceptionHandler(ChatbotRateLimitExceededException.class)
@@ -79,8 +88,7 @@ public class ChatbotController {
     @ExceptionHandler(OpenAiResponsesClient.OpenAiClientException.class)
     public ResponseEntity<ErrorResponse> handleOpenAi(OpenAiResponsesClient.OpenAiClientException exception) {
         HttpStatus status = exception.status() == 401 ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.INTERNAL_SERVER_ERROR;
-        String message = exception.status() == 401 ? ChatbotText.t(ChatbotText.DEFAULT_LANGUAGE, "openAiInvalid") : ChatbotText.t(ChatbotText.DEFAULT_LANGUAGE, "chatUnavailable");
-        return ResponseEntity.status(status).body(new ErrorResponse(message));
+        return ResponseEntity.status(status).body(new ErrorResponse(ChatbotText.t(ChatbotText.DEFAULT_LANGUAGE, "chatUnavailable")));
     }
 
     @ExceptionHandler(RuntimeException.class)

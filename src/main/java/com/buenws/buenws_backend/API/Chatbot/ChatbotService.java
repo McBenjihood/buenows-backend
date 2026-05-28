@@ -51,6 +51,11 @@ public class ChatbotService {
         return new SessionResponse(session.id(), session.language());
     }
 
+    public String resolveLanguageForRequest(String requestedSessionId, String requestedLanguage) {
+        ChatSession session = sessionStore.find(requestedSessionId);
+        return session == null ? ChatbotText.resolveLanguage(requestedLanguage) : session.language();
+    }
+
     public ChatResponse chat(String requestedSessionId, String requestedLanguage, String rawMessage) {
         String requestLanguage = ChatbotText.resolveLanguage(requestedLanguage);
         String userMessage = ChatbotText.normalizeInputText(rawMessage);
@@ -91,7 +96,15 @@ public class ChatbotService {
     public HealthResponse health() {
         boolean configLoaded;
         try { companyConfigService.loadConfig(); configLoaded = true; } catch (RuntimeException ignored) { configLoaded = false; }
-        return new HealthResponse("ok", "professional-website-chatbot", properties.openAiConfigured() ? "api" : "unconfigured", properties.openAiConfigured(), configLoaded, sessionStore.activeSessions(), Instant.now().toString());
+        Map<String, Object> details = properties.healthDetails()
+                ? Map.of(
+                        "chatMode", properties.openAiConfigured() ? "api" : "unconfigured",
+                        "openAiConfigured", properties.openAiConfigured(),
+                        "configLoaded", configLoaded,
+                        "activeSessions", sessionStore.activeSessions()
+                )
+                : Map.of();
+        return new HealthResponse("ok", "professional-website-chatbot", Instant.now().toString(), details);
     }
 
     private Classification classify(ChatbotCompanyConfig config, ChatSession session, String userMessage, String language) {

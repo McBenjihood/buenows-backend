@@ -1,6 +1,7 @@
 package com.buenws.buenws_backend.API.Chatbot;
 
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -38,6 +39,12 @@ public class ChatbotRateLimitService {
             long retryAfter = Duration.between(Instant.now(), counter.resetAt).toSeconds();
             throw new ChatbotRateLimitExceededException(code, error, Math.max(1, (int) retryAfter));
         }
+    }
+
+    @Scheduled(fixedDelayString = "${app.chatbot.rate-limit-cleanup-interval:PT30M}")
+    public void cleanupExpiredCounters() {
+        Instant now = Instant.now();
+        counters.entrySet().removeIf(entry -> !now.isBefore(entry.getValue().resetAt));
     }
 
     private static class WindowCounter {

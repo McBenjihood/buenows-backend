@@ -16,6 +16,8 @@ public class ChatbotProperties {
     private final int maxContextMessages;
     private final int maxContextChars;
     private final int sessionTtlMinutes;
+    private final String trustedProxyCidrs;
+    private final boolean healthDetails;
     private final boolean rateLimitsActive;
     private final int chatRateLimitPerMinute;
     private final int chatRateLimitPerDay;
@@ -34,6 +36,8 @@ public class ChatbotProperties {
             @Value("${app.chatbot.max-context-messages:${MAX_CONTEXT_MESSAGES:16}}") int maxContextMessages,
             @Value("${app.chatbot.max-context-chars:${MAX_CONTEXT_CHARS:9000}}") int maxContextChars,
             @Value("${app.chatbot.session-ttl-minutes:${SESSION_TTL_MINUTES:360}}") int sessionTtlMinutes,
+            @Value("${app.trusted-proxy-cidrs:${APP_TRUSTED_PROXY_CIDRS:loopback,private}}") String trustedProxyCidrs,
+            @Value("${app.chatbot.health-details:${CHATBOT_HEALTH_DETAILS:false}}") boolean healthDetails,
             @Value("${app.chatbot.rate-limits:${RATE_LIMITS:active}}") String rateLimits,
             @Value("${app.chatbot.chat-rate-limit-per-minute:${CHAT_RATE_LIMIT_PER_MINUTE:10}}") int chatRateLimitPerMinute,
             @Value("${app.chatbot.chat-rate-limit-per-day:${CHAT_RATE_LIMIT_PER_DAY:60}}") int chatRateLimitPerDay,
@@ -51,6 +55,8 @@ public class ChatbotProperties {
         this.maxContextMessages = positive(maxContextMessages, 16);
         this.maxContextChars = positive(maxContextChars, 9000);
         this.sessionTtlMinutes = positive(sessionTtlMinutes, 360);
+        this.trustedProxyCidrs = withDefault(trustedProxyCidrs, "loopback,private");
+        this.healthDetails = healthDetails;
         this.rateLimitsActive = !"inactive".equalsIgnoreCase(clean(rateLimits));
         this.chatRateLimitPerMinute = positive(chatRateLimitPerMinute, 10);
         this.chatRateLimitPerDay = positive(chatRateLimitPerDay, 60);
@@ -71,6 +77,8 @@ public class ChatbotProperties {
     public int maxContextMessages() { return maxContextMessages; }
     public int maxContextChars() { return maxContextChars; }
     public int sessionTtlMinutes() { return sessionTtlMinutes; }
+    public String trustedProxyCidrs() { return trustedProxyCidrs; }
+    public boolean healthDetails() { return healthDetails; }
     public boolean rateLimitsActive() { return rateLimitsActive; }
     public int chatRateLimitPerMinute() { return chatRateLimitPerMinute; }
     public int chatRateLimitPerDay() { return chatRateLimitPerDay; }
