@@ -101,11 +101,13 @@ public class ChatbotService {
 
             String reply = generateReply(config, session, classification, language);
             session.addMessage("assistant", reply, 4000);
-            String status = replyLooksLikeTemplate(reply)
+            boolean completed = replyLooksLikeTemplate(reply);
+            if (completed) session.end("handoff_completed");
+            String status = completed
                     ? ChatbotConversationHistoryService.STATUS_COMPLETED
                     : ChatbotConversationHistoryService.STATUS_ACTIVE;
             historyService.saveAssistantMessage(config, session, reply, status);
-            return new ChatResponse(reply, session.id(), language, false);
+            return new ChatResponse(reply, session.id(), language, completed);
         } catch (RuntimeException exception) {
             historyService.markError(session.id());
             throw exception;
