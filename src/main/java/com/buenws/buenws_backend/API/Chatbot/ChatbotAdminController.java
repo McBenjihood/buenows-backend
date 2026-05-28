@@ -35,9 +35,11 @@ public class ChatbotAdminController {
     @GetMapping("/conversations")
     public ResponseEntity<Records.ApiResponse<List<Records.AdminChatbotConversationSummaryResponse>>> getConversations(
             @RequestParam(value = "companyKey", required = false) String companyKey,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "50") int size,
             HttpServletRequest request) {
         rateLimitService.checkBucket("chatbot-conversations:get:" + RequestUtil.getClientIp(request), 5);
-        return ResponseEntity.ok(historyService.getConversationSummaries(companyKey));
+        return ResponseEntity.ok(historyService.getConversationSummaries(companyKey, page, size));
     }
 
     @GetMapping("/conversations/{conversationId}")

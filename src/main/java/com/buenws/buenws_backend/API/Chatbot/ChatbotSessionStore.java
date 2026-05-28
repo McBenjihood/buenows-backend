@@ -24,6 +24,12 @@ public class ChatbotSessionStore {
         return session;
     }
 
+    public void put(ChatSession session) {
+        if (session != null && isValidSessionId(session.id()) && !isExpired(session)) {
+            sessions.put(session.id(), session);
+        }
+    }
+
     public ChatSession find(String sessionId) {
         if (!isValidSessionId(sessionId)) return null;
         ChatSession session = sessions.get(sessionId);

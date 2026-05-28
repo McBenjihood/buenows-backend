@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -341,14 +343,23 @@ class ChatbotServiceSessionLifecycleTest {
         OpenAiResponsesClient openAiClient = mock(OpenAiResponsesClient.class);
         PromptBuilder promptBuilder = mock(PromptBuilder.class);
         ChatbotConversationHistoryService historyService = mock(ChatbotConversationHistoryService.class);
+        ContactExtractor contactExtractor = new ContactExtractor();
+        ProjectContextEvaluator projectContext = new ProjectContextEvaluator(contactExtractor);
+        LanguageSafetyGuard languageSafety = new LanguageSafetyGuard(projectContext);
+        ReplyQualityGuard replyQuality = new ReplyQualityGuard(contactExtractor, projectContext, languageSafety);
+        HandoffRenderer handoffRenderer = new HandoffRenderer(contactExtractor, projectContext, replyQuality, languageSafety);
         ChatbotService service = new ChatbotService(
                 properties,
                 configService,
                 sessionStore,
                 openAiClient,
                 promptBuilder,
-                new ContactExtractor(),
-                historyService
+                contactExtractor,
+                historyService,
+                projectContext,
+                replyQuality,
+                handoffRenderer,
+                languageSafety
         );
 
         when(configService.loadConfig()).thenReturn(config);
@@ -356,6 +367,8 @@ class ChatbotServiceSessionLifecycleTest {
         when(promptBuilder.classificationInstructions(any(), any())).thenReturn("classify");
         when(promptBuilder.replyInstructions(any(), any(), any())).thenReturn("reply");
         when(promptBuilder.repairInstructions(any(), any(), any(), any())).thenReturn("repair");
+        when(promptBuilder.handoffMetadataInstructions(any(), any())).thenReturn("handoff");
+        when(historyService.restoreActiveSession(any())).thenReturn(Optional.empty());
         when(openAiClient.classify(any(), any())).thenReturn(new Classification(ClassificationDecision.ANSWER, "project_lead", 0.95, "test"));
         int[] replyIndex = {0};
         when(openAiClient.createReply(any(), any())).thenAnswer(invocation -> replies[Math.min(replyIndex[0]++, replies.length - 1)]);

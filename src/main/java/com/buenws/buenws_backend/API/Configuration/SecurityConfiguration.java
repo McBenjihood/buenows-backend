@@ -59,10 +59,10 @@ public class SecurityConfiguration {
                                 "/api/chatbot/session",
                                 "/api/chatbot/chat",
                                 "/api/admin/inquiries",
-                                "/api/admin/inquiries/delete",
+                                "/api/admin/inquiries/**",
                                 "/api/admin/test",
                                 "/api/admin/users",
-                                "/api/admin/users/delete",
+                                "/api/admin/users/**",
                                 "/api/admin/users/update-profile",
                                 "/api/admin/users/update-role",
                                 "/api/admin/chatbot/**",
@@ -103,10 +103,10 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/health").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/admin/inquiries").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/admin/inquiries/delete").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/admin/inquiries/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/test").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/users").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/admin/users/delete").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/admin/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/users/update-profile").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/users/update-role").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/chatbot/**").hasRole("ADMIN")

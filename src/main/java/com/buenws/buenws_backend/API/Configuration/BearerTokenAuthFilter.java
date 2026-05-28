@@ -66,7 +66,14 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
+        String authorizationHeader = request.getHeader("Authorization");
+
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String accessToken = tokenService.parseTokenFromHeader(authorizationHeader);
 
 
         if (accessToken != null && !accessToken.isBlank()) {

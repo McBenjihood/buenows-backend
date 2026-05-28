@@ -4,10 +4,11 @@ import com.buenws.buenws_backend.API.Entity.InquiryEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidInquiryException;
 import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.InquiryRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -41,9 +42,9 @@ public class InquiryService {
     }
 
     @Transactional(readOnly = true)
-    public Records.ApiResponse<List<Records.InquiryResponse>> getAllInquiries() {
-        List<Records.InquiryResponse> inquiries = inquiryRepository.findAll().stream()
-                .sorted(Comparator.comparing(InquiryEntity::getCreated_at).reversed())
+    public Records.ApiResponse<List<Records.InquiryResponse>> getAllInquiries(int page, int size) {
+        PageRequest pageRequest = PageRequest.of(safePage(page), safeSize(size), Sort.by(Sort.Direction.DESC, "created_at"));
+        List<Records.InquiryResponse> inquiries = inquiryRepository.findAll(pageRequest).stream()
                 .map(inquiry -> new Records.InquiryResponse(
                         inquiry.getId(),
                         inquiry.getEmail(),
@@ -64,5 +65,13 @@ public class InquiryService {
         inquiryRepository.delete(inquiry);
 
         return Records.ApiResponse.success("Inquiry deleted successfully.");
+    }
+
+    private int safePage(int page) {
+        return Math.max(0, page);
+    }
+
+    private int safeSize(int size) {
+        return Math.min(100, Math.max(1, size));
     }
 }

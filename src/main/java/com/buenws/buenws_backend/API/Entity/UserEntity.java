@@ -50,10 +50,6 @@ public class UserEntity {
     @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private RefreshTokenEntity refreshTokenEntity;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<UserAssetEntity> userAssets;
-
-
     // Getters / Setters
     public UUID getId() {
         return id;
@@ -102,13 +98,6 @@ public class UserEntity {
     }
     public void setRefreshTokenEntity(RefreshTokenEntity refreshTokenEntity) {
         this.refreshTokenEntity = refreshTokenEntity;
-    }
-
-    public List<UserAssetEntity> getUserAssets() {
-        return userAssets;
-    }
-    public void setUserAssets(List<UserAssetEntity> userAssets) {
-        this.userAssets = userAssets;
     }
 
 }

@@ -35,17 +35,29 @@ public final class ChatbotModels {
     public record ConversationMessage(String role, String content) {}
 
     public static class ChatSession {
-        private final String id = UUID.randomUUID().toString();
+        private final String id;
         private final String language;
-        private final Instant createdAt = Instant.now();
-        private Instant updatedAt = createdAt;
+        private final Instant createdAt;
+        private Instant updatedAt;
         private int userMessageCount;
         private final List<ConversationMessage> messages = new ArrayList<>();
         private boolean ended;
         private String endedReason = "";
 
         public ChatSession(String language) {
+            this(UUID.randomUUID().toString(), language, Instant.now(), Instant.now(), 0, List.of(), false, "");
+        }
+
+        public ChatSession(String id, String language, Instant createdAt, Instant updatedAt, int userMessageCount,
+                           List<ConversationMessage> messages, boolean ended, String endedReason) {
+            this.id = id == null || id.isBlank() ? UUID.randomUUID().toString() : id;
             this.language = ChatbotText.resolveLanguage(language);
+            this.createdAt = createdAt == null ? Instant.now() : createdAt;
+            this.updatedAt = updatedAt == null ? this.createdAt : updatedAt;
+            this.userMessageCount = Math.max(0, userMessageCount);
+            if (messages != null) this.messages.addAll(messages);
+            this.ended = ended;
+            this.endedReason = endedReason == null ? "" : endedReason;
         }
         public String id() { return id; }
         public String language() { return language; }

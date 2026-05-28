@@ -6,7 +6,6 @@ import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ChatSession;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.Classification;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ClassificationDecision;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ConfigResponse;
-import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ContactInfo;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ConversationMessage;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.HealthResponse;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.SessionResponse;
@@ -15,25 +14,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 @Service
 public class ChatbotService {
-    private static final Pattern TEMPLATE_PATTERN = Pattern.compile("\\b(Gewuenschte Loesung|Gewünschte Lösung|Desired solution|Nachricht|Message)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern CONTACT_ASK_PATTERN = Pattern.compile("\\b(best contact|best way to contact|contact you|email address|phone number|Kontaktmoeglichkeit|Kontaktmöglichkeit|kontaktieren|E-Mail-Adresse|Telefonnummer|per Mail melden)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern BAD_FILLER_PATTERN = Pattern.compile("\\b(Das klingt|Es klingt|Danke fuer die Informationen|Danke für die Informationen|Es waere hilfreich|Es wäre hilfreich|Ich benoetige noch|Ich benötige noch|Moechten Sie|Möchten Sie|Koennten Sie|Könnten Sie|That sounds|It sounds|To clarify|This could involve|It would be helpful|Would you like to|Could you please|we can develop|we could develop)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern UNSAFE_PROMISE_PATTERN = Pattern.compile("\\b(we guarantee|we promise|guaranteed results|guaranteed leads|guaranteed customers|wir garantieren|wir versprechen|garantierte kunden|garantierte anfragen|sicher mehr kunden|sicher mehr anfragen)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern LANGUAGE_SWITCH_PATTERN = Pattern.compile("\\b(antworte|antworten|reply|respond|answer)\\b.{0,40}\\b(deutsch|englisch|german|english)\\b", Pattern.CASE_INSENSITIVE);
-
-    private static final Pattern THANK_YOU_INQUIRY_PATTERN = Pattern.compile("\\b(Vielen Dank fuer Ihre Anfrage|Vielen Dank für Ihre Anfrage|Vielen Dank fÃ¼r Ihre Anfrage|Thank you for your inquiry)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern WEAK_QUESTION_PATTERN = Pattern.compile("\\b(Could you|K.nnten)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern MARKDOWN_LINK_PATTERN = Pattern.compile("\\[[^\\]]+]\\(https?://[^)]+\\)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern EARLY_HANDOFF_PATTERN = Pattern.compile("\\b(contact form|contact page|project request|Projekt anfragen|Kontaktformular|Kontaktseite|Formular|Anfrageformular|Handoff)\\b|https?://\\S+", Pattern.CASE_INSENSITIVE);
-    private static final Pattern CONTACT_PREFERENCE_PATTERN = Pattern.compile("\\b(sms|text message|telefon|phone|call|anruf|whatsapp|e-mail|email|mail)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern CURRENT_PROCESS_TOOL_ASK_PATTERN = Pattern.compile("\\b(aktuelle?r? Ablauf|bestehende?s Tool|current process|current tool|software|tools?)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern AWKWARD_CHATBOT_TASK_ASK_PATTERN = Pattern.compile("\\bWas soll der KI-Chatbot\\b.{0,140}\\bhelfen\\b", Pattern.CASE_INSENSITIVE);
 
     private final ChatbotProperties properties;
     private final ChatbotCompanyConfigService companyConfigService;
@@ -42,11 +26,17 @@ public class ChatbotService {
     private final PromptBuilder promptBuilder;
     private final ContactExtractor contactExtractor;
     private final ChatbotConversationHistoryService historyService;
+    private final ProjectContextEvaluator projectContext;
+    private final ReplyQualityGuard replyQuality;
+    private final HandoffRenderer handoffRenderer;
+    private final LanguageSafetyGuard languageSafety;
 
     public ChatbotService(ChatbotProperties properties, ChatbotCompanyConfigService companyConfigService,
                           ChatbotSessionStore sessionStore, OpenAiResponsesClient openAiClient,
                           PromptBuilder promptBuilder, ContactExtractor contactExtractor,
-                          ChatbotConversationHistoryService historyService) {
+                          ChatbotConversationHistoryService historyService, ProjectContextEvaluator projectContext,
+                          ReplyQualityGuard replyQuality, HandoffRenderer handoffRenderer,
+                          LanguageSafetyGuard languageSafety) {
         this.properties = properties;
         this.companyConfigService = companyConfigService;
         this.sessionStore = sessionStore;
@@ -54,6 +44,10 @@ public class ChatbotService {
         this.promptBuilder = promptBuilder;
         this.contactExtractor = contactExtractor;
         this.historyService = historyService;
+        this.projectContext = projectContext;
+        this.replyQuality = replyQuality;
+        this.handoffRenderer = handoffRenderer;
+        this.languageSafety = languageSafety;
     }
 
     public ConfigResponse publicConfig(String language) { return companyConfigService.publicConfig(language); }
@@ -63,7 +57,7 @@ public class ChatbotService {
     }
 
     public String resolveLanguageForRequest(String requestedSessionId, String requestedLanguage) {
-        ChatSession session = sessionStore.find(requestedSessionId);
+        ChatSession session = findOrRestoreSession(requestedSessionId);
         return session == null ? ChatbotText.resolveLanguage(requestedLanguage) : session.language();
     }
 
@@ -74,7 +68,7 @@ public class ChatbotService {
         if (userMessage.length() < 2) throw new ChatbotValidationException(ChatbotText.t(requestLanguage, "shortMessage"));
         if (userMessage.length() > properties.maxMessageLength()) throw new ChatbotValidationException(ChatbotText.t(requestLanguage, "messageTooLong", Map.of("max", properties.maxMessageLength())));
 
-        ChatSession session = sessionStore.find(requestedSessionId);
+        ChatSession session = findOrRestoreSession(requestedSessionId);
         if (session != null && session.ended()) {
             String previousLanguage = session.language();
             sessionStore.delete(session.id());
@@ -104,7 +98,7 @@ public class ChatbotService {
 
             String reply = generateReply(config, session, classification, language);
             session.addMessage("assistant", reply, 4000);
-            boolean completed = replyLooksLikeTemplate(reply);
+            boolean completed = replyQuality.replyLooksLikeTemplate(reply);
             if (completed) session.end("handoff_completed");
             String status = completed
                     ? ChatbotConversationHistoryService.STATUS_COMPLETED
@@ -131,6 +125,17 @@ public class ChatbotService {
         return new HealthResponse("ok", "professional-website-chatbot", Instant.now().toString(), details);
     }
 
+    private ChatSession findOrRestoreSession(String requestedSessionId) {
+        ChatSession session = sessionStore.find(requestedSessionId);
+        if (session != null) return session;
+        return historyService.restoreActiveSession(requestedSessionId)
+                .map(restored -> {
+                    sessionStore.put(restored);
+                    return restored;
+                })
+                .orElse(null);
+    }
+
     private Classification classify(ChatbotCompanyConfig config, ChatSession session, String userMessage, String language) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("language", language);
@@ -146,29 +151,29 @@ public class ChatbotService {
         if (reply.isBlank()) throw new ChatbotUnavailableException(ChatbotText.t(language, "chatUnavailable"), 500);
 
         for (int attempt = 1; attempt <= 2; attempt += 1) {
-            String issue = getReplyQualityIssue(reply, session, metadata, language);
+            String issue = replyQuality.getReplyQualityIssue(reply, session, metadata, language);
             if (issue == null) break;
             metadata = merge(metadata, openAiClient.repairReply(promptBuilder.repairInstructions(config, classification, language, issue), buildConversationForReply(session), issue, reply));
             reply = ChatbotText.cleanReply(metadata.reply());
         }
-        if (needsEarlyProjectFallback(reply, session) || needsWeakProjectQuestionFallback(reply, session) || asksWrongCurrentToolQuestionForWebsiteChatbot(reply, session) || asksAwkwardChatbotTaskQuestion(reply)) reply = buildProjectFollowUpFallback(session, language);
-        if (asksForContactOption(reply) && !hasEnoughProjectContextForHandoff(session)) reply = buildProjectFollowUpFallback(session, language);
-        if (asksForContactOption(reply) && isContactPreferenceWithoutConcreteInfo(getLastUserMessage(session))) reply = buildConcreteContactQuestion(getLastUserMessage(session), language);
-        if (isAmbiguousChannelReply(session)) reply = buildChannelClarificationQuestion(getLastUserMessage(session), language);
-        if (contactExtractor.textHasContactInfo(getLastUserMessage(session)) && !hasEnoughProjectContextForHandoff(session)) reply = buildProjectFollowUpFallback(session, language);
-        if (repeatsPreviousAssistantQuestion(reply, session)) reply = buildProjectFollowUpFallback(session, language);
+        if (replyQuality.needsProjectFollowUpFallback(reply, session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
+        if (replyQuality.needsContactDelayFallback(reply, session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
+        if (replyQuality.asksForContactOption(reply) && replyQuality.lastUserMessageIsContactPreference(session)) reply = replyQuality.buildConcreteContactQuestion(projectContext.getLastUserMessage(session), language);
+        if (replyQuality.isAmbiguousChannelReply(session)) reply = replyQuality.buildChannelClarificationQuestion(projectContext.getLastUserMessage(session), language);
+        if (replyQuality.lastUserContactButProjectContextMissing(session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
+        if (projectContext.repeatsPreviousAssistantQuestion(reply, session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
 
-        if (needsStructuredHandoffRecovery(session, reply)) {
+        if (replyQuality.needsStructuredHandoffRecovery(session, reply)) {
             metadata = merge(metadata, openAiClient.extractHandoffMetadata(promptBuilder.handoffMetadataInstructions(config, language), buildConversationForReply(session), reply));
         }
-        reply = maybeFormatStructuredHandoff(config, session, metadata, reply, language);
-        if (replyLooksLikeTemplate(reply) && !hasEnoughProjectContextForHandoff(session)) reply = buildProjectFollowUpFallback(session, language);
-        if (replyLooksLikeTemplate(reply) && !contactExtractor.conversationHasContactInfo(session.messages())) reply = ChatbotText.t(language, "contactMissing");
-        if (replyLooksWrongLanguage(reply, language) || isLanguageLockOnlyReply(reply) || missesLanguageLockAcknowledgement(reply, session, language)) {
-            if (missesLanguageLockAcknowledgement(reply, session, language) && replyLooksLikeTemplate(reply) && !replyLooksWrongLanguage(reply, language)) reply = languageLockSentence(language) + "\n\n" + reply;
-            else reply = buildLanguageSafeFallback(session, language);
+        reply = handoffRenderer.maybeFormatStructuredHandoff(config, session, metadata, reply, language);
+        if (replyQuality.replyLooksLikeTemplate(reply) && !projectContext.hasEnoughProjectContextForHandoff(session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
+        if (replyQuality.replyLooksLikeTemplate(reply) && !contactExtractor.conversationHasContactInfo(session.messages())) reply = ChatbotText.t(language, "contactMissing");
+        if (languageSafety.replyLooksWrongLanguage(reply, language) || languageSafety.isLanguageLockOnlyReply(reply) || languageSafety.missesLanguageLockAcknowledgement(reply, session, language)) {
+            if (languageSafety.missesLanguageLockAcknowledgement(reply, session, language) && replyQuality.replyLooksLikeTemplate(reply) && !languageSafety.replyLooksWrongLanguage(reply, language)) reply = languageSafety.languageLockSentence(language) + "\n\n" + reply;
+            else reply = languageSafety.buildLanguageSafeFallback(session, language);
         }
-        return enforceFinalReplySafety(reply, language);
+        return replyQuality.enforceFinalReplySafety(reply, language);
     }
 
     private List<Map<String, Object>> buildConversationForClassification(ChatSession session, String currentMessage) {
@@ -201,269 +206,5 @@ public class ChatbotService {
         return new AssistantMetadata(!next.reply().isBlank() ? next.reply() : previous.reply(), next.readyForHandoff() || previous.readyForHandoff(), firstNonBlank(next.contactEmail(), previous.contactEmail()), firstNonBlank(next.contactPhone(), previous.contactPhone()), firstNonBlank(next.desiredSolution(), previous.desiredSolution()), firstNonBlank(next.leadSummary(), previous.leadSummary()));
     }
 
-    private String maybeFormatStructuredHandoff(ChatbotCompanyConfig config, ChatSession session, AssistantMetadata metadata, String reply, String language) {
-        ContactInfo contact = contactExtractor.extractFromConversation(session.messages());
-        if (!contact.hasAny()) return reply;
-        if (!hasEnoughProjectContextForHandoff(session)) return reply;
-        boolean shouldHandoff = metadata.readyForHandoff() || replyLooksLikeTemplate(reply) || needsStructuredHandoffRecovery(session, reply);
-        if (!shouldHandoff) return reply;
-        String desiredSolution = firstNonBlank(metadata.desiredSolution(), inferDesiredSolution(session, reply, language));
-        String leadSummary = firstNonBlank(metadata.leadSummary(), inferLeadSummary(session, language));
-        if (desiredSolution.isBlank() || leadSummary.isBlank()) return reply;
-        return buildHandoffReply(config, language, contact, desiredSolution, leadSummary, isLanguageSwitchRequest(getLastUserMessage(session)));
-    }
-
-    private String buildHandoffReply(ChatbotCompanyConfig config, String language, ContactInfo contact, String desiredSolution, String leadSummary, boolean includeLanguageLock) {
-        String target = firstNonBlank(config.handoff().path("url").asText(""), config.fallbackContact().path("email").asText(""), config.fallbackContact().path("phone").asText(""));
-        StringBuilder builder = new StringBuilder();
-        if (includeLanguageLock) builder.append(languageLockSentence(language)).append("\n\n");
-        if ("de".equals(language)) {
-            builder.append("Danke, das ist eine klare Anfrage.\n\nIch kann Ihre Angaben nicht automatisch ins Kontaktformular eintragen oder ans Team senden.\nBitte senden Sie die Anfrage deshalb über das Kontaktformular:\n").append(target).append("\n\nSobald die Anfrage gesendet wurde, werden wir sie bearbeiten und anschliessend über die angegebene Kontaktmöglichkeit Kontakt aufnehmen.\n\nFür das Formular können Sie diese Angaben übernehmen:\n\n");
-            if (!contact.email().isBlank()) builder.append("E-Mail\n").append(contact.email()).append("\n\n");
-            if (!contact.phone().isBlank()) builder.append("Telefon\n").append(contact.phone()).append("\n\n");
-            builder.append("Gewünschte Lösung\n").append(cleanLeadField(desiredSolution, 160)).append("\n\nNachricht\n").append(cleanLeadSummary(leadSummary));
-        } else {
-            builder.append("Thank you, this is a clear request.\n\nI cannot automatically submit your details through the contact form or send them to the team.\nPlease submit the request via the contact form:\n").append(target).append("\n\nOnce the request has been submitted, we will review it and then contact you through the provided contact details.\n\nYou can use these details for the form:\n\n");
-            if (!contact.email().isBlank()) builder.append("Email\n").append(contact.email()).append("\n\n");
-            if (!contact.phone().isBlank()) builder.append("Phone\n").append(contact.phone()).append("\n\n");
-            builder.append("Desired solution\n").append(cleanLeadField(desiredSolution, 160)).append("\n\nMessage\n").append(cleanLeadSummary(leadSummary));
-        }
-        return builder.toString().trim();
-    }
-
-    private String getReplyQualityIssue(String reply, ChatSession session, AssistantMetadata metadata, String language) {
-        if (replyLooksWrongLanguage(reply, language)) return "The reply is not in the fixed session language.";
-        if (MARKDOWN_LINK_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses a Markdown link. Use plain text only. Do not link to the contact form before final handoff.";
-        if (needsEarlyProjectFallback(reply, session)) return "The reply redirects to the contact form too early. Continue the conversation by asking one practical follow-up question in chat.";
-        if (asksForContactOption(reply) && !hasEnoughProjectContextForHandoff(session)) return "The reply asks for contact information before the project need is clear. Ask what process, task or current workflow should be improved first.";
-        if (repeatsPreviousAssistantQuestion(reply, session)) return "The reply repeats the previous assistant question after the user answered it. Ask the next useful project question instead.";
-        if (asksWrongCurrentToolQuestionForWebsiteChatbot(reply, session)) return "The user wants a website with an AI chatbot. Ask what the chatbot should do on the website instead of asking for a current process or tool.";
-        if (asksAwkwardChatbotTaskQuestion(reply)) return "The German question is grammatically awkward. Ask: Welche Aufgaben soll der KI-Chatbot auf der Website übernehmen?";
-        if (metadata.readyForHandoff() && !replyLooksLikeTemplate(reply)) return "The metadata says handoff is ready but the reply does not use the exact contact-form template.";
-        if (contactExtractor.conversationHasContactInfo(session.messages()) && asksForContactOption(reply)) return "The user already provided contact information. Generate the contact-form template if the project is concrete enough.";
-        if (lastMessageHasContactAndLanguageSwitch(session) && !replyLooksLikeTemplate(reply)) return "The user asked to switch language and provided contact information. Keep the fixed language and generate the template if context is clear.";
-        if (BAD_FILLER_PATTERN.matcher(reply == null ? "" : reply).find() || THANK_YOU_INQUIRY_PATTERN.matcher(reply == null ? "" : reply).find() || WEAK_QUESTION_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses filler or weak customer-service phrasing. Ask directly without 'Could you' or 'Könnten Sie'.";
-        if (UNSAFE_PROMISE_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply makes a promise or guarantee.";
-        return null;
-    }
-
-    private boolean needsStructuredHandoffRecovery(ChatSession session, String reply) {
-        return hasEnoughProjectContextForHandoff(session) && contactExtractor.conversationHasContactInfo(session.messages()) && !replyLooksLikeTemplate(reply) && (lastMessageHasContactAndLanguageSwitch(session) || asksForContactOption(reply) || asksOptionalDetailAfterContact(session, reply));
-    }
-    private boolean needsEarlyProjectFallback(String reply, ChatSession session) {
-        String value = reply == null ? "" : reply;
-        return !contactExtractor.conversationHasContactInfo(session.messages())
-                && !replyLooksLikeTemplate(value)
-                && EARLY_HANDOFF_PATTERN.matcher(value).find();
-    }
-    private boolean needsWeakProjectQuestionFallback(String reply, ChatSession session) {
-        String value = reply == null ? "" : reply;
-        return !contactExtractor.conversationHasContactInfo(session.messages())
-                && !replyLooksLikeTemplate(value)
-                && getUserMessageCount(session) <= 1
-                && (BAD_FILLER_PATTERN.matcher(value).find() || THANK_YOU_INQUIRY_PATTERN.matcher(value).find() || WEAK_QUESTION_PATTERN.matcher(value).find());
-    }
-    private boolean replyLooksLikeTemplate(String reply) { return TEMPLATE_PATTERN.matcher(reply == null ? "" : reply).find(); }
-    private boolean asksForContactOption(String reply) { return CONTACT_ASK_PATTERN.matcher(reply == null ? "" : reply).find() && (reply == null || reply.contains("?")); }
-    private boolean asksOptionalDetailAfterContact(ChatSession session, String reply) { return contactExtractor.conversationHasContactInfo(session.messages()) && getUserMessageCount(session) >= 2 && reply != null && reply.contains("?") && !asksForContactOption(reply); }
-    private boolean lastMessageHasContactAndLanguageSwitch(ChatSession session) { String last = getLastUserMessage(session); return contactExtractor.textHasContactInfo(last) && isLanguageSwitchRequest(last); }
-    private int getUserMessageCount(ChatSession session) { int count = 0; for (ConversationMessage message : session.messages()) if ("user".equals(message.role())) count += 1; return count; }
-    private boolean replyLooksWrongLanguage(String reply, String language) {
-        if (reply == null || reply.isBlank()) return false;
-        return "de".equals(language)
-                ? Pattern.compile("\\b(Please|What current|Could you|Desired solution|The session language|Thank you, this is a clear request)\\b", Pattern.CASE_INSENSITIVE).matcher(reply).find()
-                : Pattern.compile("\\b(Bitte|Welche|Koennen|Können|Gewuenschte Loesung|Gewünschte Lösung|Die Sitzungssprache|Danke, das ist eine klare Anfrage)\\b", Pattern.CASE_INSENSITIVE).matcher(reply).find();
-    }
-    private boolean isLanguageLockOnlyReply(String reply) { return reply != null && Pattern.compile("\\b(session language stays fixed|Sitzungssprache bleibt)\\b", Pattern.CASE_INSENSITIVE).matcher(reply).find() && reply.trim().length() < 120; }
-    private boolean missesLanguageLockAcknowledgement(String reply, ChatSession session, String language) {
-        if (!isLanguageSwitchRequest(getLastUserMessage(session))) return false;
-        return "de".equals(language)
-                ? !Pattern.compile("\\bSitzungssprache bleibt Deutsch\\b", Pattern.CASE_INSENSITIVE).matcher(reply == null ? "" : reply).find()
-                : !Pattern.compile("\\bsession language stays fixed in English\\b", Pattern.CASE_INSENSITIVE).matcher(reply == null ? "" : reply).find();
-    }
-    private boolean isLanguageSwitchRequest(String value) { return LANGUAGE_SWITCH_PATTERN.matcher(value == null ? "" : value).find(); }
-    private String languageLockSentence(String language) { return "de".equals(language) ? "Die Sitzungssprache bleibt Deutsch." : "The session language stays fixed in English."; }
-    private String buildLanguageSafeFallback(ChatSession session, String language) { String question = getLastAssistantQuestion(session); return !question.isBlank() ? question : ("de".equals(language) ? "Welche Information ist für die Anfrage als Nächstes am wichtigsten?" : "What information is most important for the request next?"); }
-    private String buildProjectFollowUpFallback(ChatSession session, String language) {
-        String text = conversationText(session).toLowerCase(Locale.ROOT);
-        if (containsAny(text, "rechnung", "rechnungen", "invoice", "invoicing")) {
-            return "de".equals(language)
-                    ? "Welche Software oder welchen aktuellen Ablauf nutzen Sie heute f\u00fcr die Rechnungen?"
-                    : "What software or current process do you use for invoicing today?";
-        }
-        if (containsAny(text, "website", "webseite", "redesign")) {
-            if (containsAny(text, "chatbot", "chat bot", "ki chatbot", "ai chatbot")) {
-                return "de".equals(language)
-                        ? "Welche Aufgaben soll der KI-Chatbot auf der Website übernehmen?"
-                        : "What tasks should the AI chatbot handle on the website?";
-            }
-            if (hasAnsweredNoToExistingWebsiteQuestion(session)) {
-                return "de".equals(language)
-                        ? "Welche Inhalte oder Funktionen soll die neue Website haben?"
-                        : "What content or features should the new website include?";
-            }
-            return "de".equals(language)
-                    ? "Gibt es bereits eine bestehende Website, die erneuert werden soll?"
-                    : "Is there already an existing website that should be redesigned?";
-        }
-        if (containsAny(text, "automation", "automatisierung", "automate", "automatisieren")) {
-            return "de".equals(language)
-                    ? "Welcher Ablauf soll als Erstes automatisiert werden?"
-                    : "Which process should be automated first?";
-        }
-        return buildLanguageSafeFallback(session, language);
-    }
-    private boolean hasEnoughProjectContextForHandoff(ChatSession session) {
-        List<String> fragments = projectContextFragments(session);
-        if (fragments.isEmpty()) return false;
-        String text = String.join(" ", fragments).toLowerCase(Locale.ROOT);
-        if (containsAny(text,
-                "rechnung", "rechnungen", "invoice", "invoicing", "zahlung", "mahnung", "abo", "subscription",
-                "website", "webseite", "redesign", "terminbuchung", "booking", "kundengewinnung", "leads",
-                "backend", "dashboard", "admin", "login", "portal", "datenbank", "database",
-                "gmail", "e-mail", "email", "mail", "antwort", "support", "kundensupport", "chatbot",
-                "telefonassistent", "phone assistant", "dokument", "pdf", "wissens", "knowledge",
-                "manuell", "manual", "current process", "aktueller ablauf", "bestehend", "veraltet")) return true;
-        if (fragments.size() >= 2 && wordCount(text) >= 12) return true;
-        return wordCount(text) >= 18 && containsAny(text, "ki", "ai", "automatisierung", "automation", "automate", "automatisieren");
-    }
-    private List<String> projectContextFragments(ChatSession session) {
-        List<String> fragments = new ArrayList<>();
-        for (ConversationMessage message : session.messages()) {
-            if (!"user".equals(message.role())) continue;
-            String cleaned = stripContactInfo(message.content());
-            if (cleaned.isBlank() || isContactPreferenceWithoutConcreteInfo(cleaned)) continue;
-            fragments.add(cleaned);
-        }
-        return fragments;
-    }
-    private String stripContactInfo(String value) {
-        return (value == null ? "" : value)
-                .replaceAll("(?i)[\\w.-]+@[\\w.-]+\\.[a-z]{2,}", " ")
-                .replaceAll("(?i)\\b(kontakt|contact|meine telefon nummer ist|meine telefonnummer ist|telefonnummer|phone number|per mail|per e-mail|my email is)\\b[: ]*", " ")
-                .replaceAll("(?<!\\w)(?:\\+?\\d[\\d\\s().-]{6,}\\d)(?!\\w)", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
-    }
-    private int wordCount(String value) {
-        String cleaned = value == null ? "" : value.trim();
-        if (cleaned.isBlank()) return 0;
-        return cleaned.split("\\s+").length;
-    }
-    private boolean isContactPreferenceWithoutConcreteInfo(String value) {
-        String text = value == null ? "" : value.trim();
-        return !contactExtractor.textHasContactInfo(text) && text.length() <= 80 && CONTACT_PREFERENCE_PATTERN.matcher(text).find();
-    }
-    private boolean isAmbiguousChannelReply(ChatSession session) {
-        String lastUser = getLastUserMessage(session);
-        String lastQuestion = getLastAssistantQuestion(session);
-        return getUserMessageCount(session) > 1 && isContactPreferenceWithoutConcreteInfo(lastUser) && !lastQuestion.isBlank() && !asksForContactOption(lastQuestion);
-    }
-    private boolean repeatsPreviousAssistantQuestion(String reply, ChatSession session) {
-        String current = normalizeQuestion(reply);
-        String previous = normalizeQuestion(getLastAssistantQuestion(session));
-        return !current.isBlank() && !previous.isBlank() && (current.equals(previous) || current.contains(previous) || previous.contains(current));
-    }
-    private boolean asksWrongCurrentToolQuestionForWebsiteChatbot(String reply, ChatSession session) {
-        String text = conversationText(session).toLowerCase(Locale.ROOT);
-        return getUserMessageCount(session) <= 1
-                && containsAny(text, "website", "webseite")
-                && containsAny(text, "chatbot", "chat bot", "ki chatbot", "ai chatbot")
-                && CURRENT_PROCESS_TOOL_ASK_PATTERN.matcher(reply == null ? "" : reply).find();
-    }
-    private boolean asksAwkwardChatbotTaskQuestion(String reply) {
-        return AWKWARD_CHATBOT_TASK_ASK_PATTERN.matcher(reply == null ? "" : reply).find();
-    }
-    private String normalizeQuestion(String value) {
-        String text = value == null ? "" : value;
-        int questionMark = text.indexOf('?');
-        if (questionMark >= 0) text = text.substring(0, questionMark + 1);
-        return text.toLowerCase(Locale.ROOT)
-                .replace('ä', 'a')
-                .replace('ö', 'o')
-                .replace('ü', 'u')
-                .replaceAll("[^a-z0-9]+", " ")
-                .trim();
-    }
-    private boolean hasAnsweredNoToExistingWebsiteQuestion(ChatSession session) {
-        List<ConversationMessage> messages = session.messages();
-        for (int i = messages.size() - 1; i >= 1; i--) {
-            ConversationMessage message = messages.get(i);
-            if (!"user".equals(message.role())) continue;
-            String answer = normalizeQuestion(message.content());
-            if (!containsAny(answer, "nein", "no", "keine", "nichts", "gar nichts")) continue;
-            ConversationMessage previous = messages.get(i - 1);
-            if ("assistant".equals(previous.role()) && asksAboutExistingWebsite(previous.content())) return true;
-        }
-        return false;
-    }
-    private boolean asksAboutExistingWebsite(String value) {
-        String normalized = normalizeQuestion(value);
-        return containsAny(normalized, "bestehende website", "bestehende webseite", "existing website", "website erneuert", "webseite erneuert", "redesigned");
-    }
-    private String buildConcreteContactQuestion(String lastUserMessage, String language) {
-        String text = lastUserMessage == null ? "" : lastUserMessage.toLowerCase(Locale.ROOT);
-        if ("de".equals(language)) {
-            if (containsAny(text, "telefon", "phone", "call", "anruf", "sms", "whatsapp")) return "Wie lautet die Telefonnummer, unter der wir Sie erreichen können?";
-            if (containsAny(text, "mail", "email", "e-mail")) return "Wie lautet Ihre E-Mail-Adresse?";
-            return "Wie lautet Ihre E-Mail-Adresse oder Telefonnummer?";
-        }
-        if (containsAny(text, "telefon", "phone", "call", "anruf", "sms", "whatsapp")) return "What phone number can we use to contact you?";
-        if (containsAny(text, "mail", "email", "e-mail")) return "What is your email address?";
-        return "What email address or phone number can we use to contact you?";
-    }
-    private String buildChannelClarificationQuestion(String lastUserMessage, String language) {
-        String text = lastUserMessage == null ? "" : lastUserMessage.toLowerCase(Locale.ROOT);
-        if ("de".equals(language)) {
-            if (containsAny(text, "sms")) return "Meinen Sie eine SMS-Automatisierung oder SMS nur als Kontaktweg?";
-            if (containsAny(text, "telefon", "phone", "call", "anruf")) return "Meinen Sie einen Telefonassistenten oder Telefon nur als Kontaktweg?";
-            if (containsAny(text, "whatsapp")) return "Meinen Sie eine WhatsApp-Automatisierung oder WhatsApp nur als Kontaktweg?";
-            if (containsAny(text, "mail", "email", "e-mail")) return "Meinen Sie eine E-Mail-Automatisierung oder E-Mail nur als Kontaktweg?";
-            return "Meinen Sie damit den gewünschten Ablauf oder nur den Kontaktweg?";
-        }
-        if (containsAny(text, "sms", "text message")) return "Do you mean SMS automation or SMS only as the contact channel?";
-        if (containsAny(text, "telefon", "phone", "call")) return "Do you mean a phone assistant or phone only as the contact channel?";
-        if (containsAny(text, "whatsapp")) return "Do you mean WhatsApp automation or WhatsApp only as the contact channel?";
-        if (containsAny(text, "mail", "email", "e-mail")) return "Do you mean email automation or email only as the contact channel?";
-        return "Do you mean that as the process to automate or only as the contact channel?";
-    }
-    private String enforceFinalReplySafety(String reply, String language) {
-        String cleaned = ChatbotText.cleanReply(reply)
-                .replaceAll("(?i)\\bwe guarantee\\b", "we can discuss")
-                .replaceAll("(?i)\\bguaranteed\\b", "planned")
-                .replaceAll("(?i)\\bwir garantieren\\b", "wir können prüfen")
-                .trim();
-        return "de".equals(language) ? ChatbotText.normalizeGermanOutput(cleaned) : cleaned;
-    }
-    private String inferDesiredSolution(ChatSession session, String reply, String language) {
-        String text = (conversationText(session) + "\n" + (reply == null ? "" : reply)).toLowerCase(Locale.ROOT);
-        if (containsAny(text, "invoice", "invoicing", "rechnung", "rechnungen", "subscription", "abo")) return "de".equals(language) ? "Rechnungsautomatisierung per E-Mail" : "Invoice automation with email delivery";
-        if (containsAny(text, "payment reminder", "zahlungserinnerung", "mahnung", "reminder")) return "de".equals(language) ? "Automatisierte Zahlungserinnerungen" : "Payment reminder automation";
-        if (containsAny(text, "internal documents", "knowledge", "pdf", "wissens", "dokumente", "quellen")) return "de".equals(language) ? "Interner KI-Wissensassistent" : "AI knowledge assistant";
-        if (containsAny(text, "phone assistant", "telefonassistent", "callback", "rueckruf", "rückruf")) return "de".equals(language) ? "KI-Telefonassistent" : "AI phone assistant";
-        if (containsAny(text, "chatbot", "chat bot")) return "de".equals(language) ? "Website-Chatbot" : "Website chatbot";
-        if (containsAny(text, "portal", "customer portal", "kundenportal", "login")) return "de".equals(language) ? "Kundenportal" : "Customer portal";
-        if (containsAny(text, "backend", "dashboard", "admin")) return "de".equals(language) ? "Backend-System" : "Backend system";
-        if (containsAny(text, "website", "webseite", "site", "redesign")) return "Website";
-        if (containsAny(text, "automation", "automatisierung", "automate")) return "de".equals(language) ? "Prozessautomatisierung" : "Process automation";
-        return "de".equals(language) ? "Digitale Lösung" : "Digital solution";
-    }
-    private String inferLeadSummary(ChatSession session, String language) {
-        StringBuilder summary = new StringBuilder();
-        for (ConversationMessage message : session.messages()) {
-            if ("user".equals(message.role()) && !contactExtractor.textHasContactInfo(message.content())) {
-                if (!summary.isEmpty()) summary.append("\n");
-                summary.append(message.content());
-            }
-        }
-        String cleaned = cleanLeadSummary(summary.toString());
-        return !cleaned.isBlank() ? cleaned : ("de".equals(language) ? "Es geht um eine digitale Projektanfrage." : "This is a digital project inquiry.");
-    }
-    private String cleanLeadSummary(String value) { return ChatbotText.cleanText(value, 900).replaceAll("(?i)[\\w.-]+@[\\w.-]+\\.[a-z]{2,}", "").replaceAll("(?i)\\b(my email is|meine e-mail ist|contact|kontakt|bitte per mail melden)\\b[: ]*", "").replaceAll("\\n{3,}", "\n\n").trim(); }
-    private String cleanLeadField(String value, int maxLength) { return ChatbotText.cleanInlineText(value, maxLength).replaceAll("[.:;]+$", "").trim(); }
-    private String conversationText(ChatSession session) { StringBuilder builder = new StringBuilder(); for (ConversationMessage message : session.messages()) builder.append(message.content()).append('\n'); return builder.toString(); }
-    private boolean containsAny(String text, String... needles) { for (String needle : needles) if (text.contains(needle)) return true; return false; }
-    private String getLastAssistantQuestion(ChatSession session) { for (int i = session.messages().size() - 1; i >= 0; i--) { ConversationMessage m = session.messages().get(i); if ("assistant".equals(m.role()) && m.content().contains("?")) return m.content(); } return ""; }
-    private String getLastUserMessage(ChatSession session) { for (int i = session.messages().size() - 1; i >= 0; i--) { ConversationMessage m = session.messages().get(i); if ("user".equals(m.role())) return m.content(); } return ""; }
     private String firstNonBlank(String... values) { for (String value : values) if (value != null && !value.isBlank()) return value.trim(); return ""; }
 }

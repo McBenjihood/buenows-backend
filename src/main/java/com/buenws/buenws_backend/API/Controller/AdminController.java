@@ -36,24 +36,28 @@ public class AdminController {
 
     @GetMapping("/inquiries")
     public ResponseEntity<Records.ApiResponse<List<Records.InquiryResponse>>> getAllInquiries(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "50") int size,
             HttpServletRequest request) {
         rateLimitService.checkBucket("inquiries/get:" + RequestUtil.getClientIp(request), 1);
-        return ResponseEntity.ok(inquiryService.getAllInquiries());
+        return ResponseEntity.ok(inquiryService.getAllInquiries(page, size));
     }
 
-    @DeleteMapping("/inquiries/delete")
-    public ResponseEntity<Records.ApiResponse<Void>> deleteInquiry(
-            @Valid @RequestBody Records.DeleteInquiryRequest deleteInquiryRequest,
+    @DeleteMapping("/inquiries/{inquiryId}")
+    public ResponseEntity<Records.ApiResponse<Void>> deleteInquiryById(
+            @PathVariable Long inquiryId,
             HttpServletRequest request) {
         rateLimitService.checkBucket("inquiries/delete:" + RequestUtil.getClientIp(request), 15);
-        return ResponseEntity.ok(inquiryService.deleteInquiryForAdmin(deleteInquiryRequest.inquiryID()));
+        return ResponseEntity.ok(inquiryService.deleteInquiryForAdmin(inquiryId));
     }
 
     @GetMapping("/users")
     public ResponseEntity<Records.ApiResponse<List<Records.AdminUserResponse>>> getAllUsers(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "50") int size,
             HttpServletRequest request) {
         rateLimitService.checkBucket("users/get:" + RequestUtil.getClientIp(request), 1);
-        return ResponseEntity.ok(userService.getAllUsersForAdmin());
+        return ResponseEntity.ok(userService.getAllUsersForAdmin(page, size));
     }
 
     @PutMapping("/users/update-role")
@@ -72,11 +76,11 @@ public class AdminController {
         return ResponseEntity.ok(userService.updateUserProfile(adminUpdateUserProfileRequest));
     }
 
-    @DeleteMapping("/users/delete")
-    public ResponseEntity<Records.ApiResponse<Void>> deleteUser(
-            @Valid @RequestBody Records.DeleteUserRequest deleteUserRequest,
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Records.ApiResponse<Void>> deleteUserById(
+            @PathVariable UUID userId,
             HttpServletRequest request) {
         rateLimitService.checkBucket("users/delete:" + RequestUtil.getClientIp(request), 20);
-        return ResponseEntity.ok(userService.deleteUserForAdmin(deleteUserRequest.userID()));
+        return ResponseEntity.ok(userService.deleteUserForAdmin(userId));
     }
 }

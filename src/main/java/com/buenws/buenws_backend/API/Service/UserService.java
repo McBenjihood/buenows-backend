@@ -14,6 +14,8 @@ import com.buenws.buenws_backend.Util.CryptographyUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -268,9 +269,9 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Records.ApiResponse<List<Records.AdminUserResponse>> getAllUsersForAdmin() {
-        List<Records.AdminUserResponse> users = userRepository.findAll().stream()
-                .sorted(Comparator.comparing(UserEntity::getCreated_at).reversed())
+    public Records.ApiResponse<List<Records.AdminUserResponse>> getAllUsersForAdmin(int page, int size) {
+        PageRequest pageRequest = PageRequest.of(safePage(page), safeSize(size), Sort.by(Sort.Direction.DESC, "created_at"));
+        List<Records.AdminUserResponse> users = userRepository.findAll(pageRequest).stream()
                 .map(this::mapAdminUser)
                 .toList();
 
@@ -397,5 +398,13 @@ public class UserService {
         }
 
         return value.trim();
+    }
+
+    private int safePage(int page) {
+        return Math.max(0, page);
+    }
+
+    private int safeSize(int size) {
+        return Math.min(100, Math.max(1, size));
     }
 }

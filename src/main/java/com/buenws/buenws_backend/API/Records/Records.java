@@ -1,7 +1,6 @@
 package com.buenws.buenws_backend.API.Records;
 
 import jakarta.validation.constraints.*;
-import java.lang.reflect.Array;
 import java.util.UUID;
 
 public class Records
@@ -43,11 +42,6 @@ public class Records
     ){}
     public record ErrorResponse(
             String errorCode
-    ){}
-    public record UploadFileResponse(
-            long asset_id,
-            String type,
-            String url
     ){}
     public record VerifyOTPResponse(
             UUID verified_token
@@ -181,13 +175,4 @@ public class Records
             UUID verified_token
     ){}
 
-    public record DeleteInquiryRequest(
-            @NotNull(message = "InquiryID is required")
-            Long inquiryID
-    ){}
-
-    public record DeleteUserRequest(
-            @NotNull(message = "userID is required")
-            UUID userID
-    ){}
 }

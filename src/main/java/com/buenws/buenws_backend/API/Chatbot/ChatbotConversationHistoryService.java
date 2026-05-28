@@ -1,12 +1,15 @@
 package com.buenws.buenws_backend.API.Chatbot;
 
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ChatSession;
+import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ConversationMessage;
 import com.buenws.buenws_backend.API.Entity.ChatbotConversationEntity;
 import com.buenws.buenws_backend.API.Entity.ChatbotMessageEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidInquiryException;
 import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.ChatbotConversationRepository;
 import com.buenws.buenws_backend.API.Repository.Repositories.ChatbotMessageRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -66,13 +70,14 @@ public class ChatbotConversationHistoryService {
     }
 
     @Transactional(readOnly = true)
-    public Records.ApiResponse<List<Records.AdminChatbotConversationSummaryResponse>> getConversationSummaries(String requestedCompanyKey) {
+    public Records.ApiResponse<List<Records.AdminChatbotConversationSummaryResponse>> getConversationSummaries(String requestedCompanyKey, int page, int size) {
         ChatbotCompanyConfig config = companyConfigService.loadConfig();
         String companyKey = normalizeCompanyKey(requestedCompanyKey, config.companyKey());
         Instant cutoff = Instant.now().minus(properties.historyRetentionDays(), ChronoUnit.DAYS);
+        PageRequest pageRequest = PageRequest.of(safePage(page), safeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"));
 
         List<Records.AdminChatbotConversationSummaryResponse> conversations = conversationRepository
-                .findByCompanyKeyAndCreatedAtAfterOrderByCreatedAtDesc(companyKey, cutoff)
+                .findByCompanyKeyAndCreatedAtAfter(companyKey, cutoff, pageRequest)
                 .stream()
                 .map(this::toSummary)
                 .toList();
@@ -91,6 +96,33 @@ public class ChatbotConversationHistoryService {
                 .toList();
 
         return Records.ApiResponse.success("Chatbot conversation loaded successfully.", toDetail(conversation, messages));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ChatSession> restoreActiveSession(String sessionId) {
+        return findBySessionId(sessionId)
+                .filter(conversation -> Instant.now().isBefore(conversation.getExpiresAt()))
+                .filter(conversation -> STATUS_ACTIVE.equals(conversation.getStatus()))
+                .map(conversation -> {
+                    List<ConversationMessage> messages = messageRepository
+                            .findByConversationConversationIdOrderBySequenceNumberAsc(conversation.getConversationId())
+                            .stream()
+                            .map(message -> new ConversationMessage(message.getRole(), message.getContent()))
+                            .toList();
+                    int userMessageCount = (int) messages.stream()
+                            .filter(message -> "user".equals(message.role()))
+                            .count();
+                    return new ChatSession(
+                            conversation.getSessionId().toString(),
+                            conversation.getLanguage(),
+                            conversation.getCreatedAt(),
+                            conversation.getUpdatedAt(),
+                            userMessageCount,
+                            messages,
+                            false,
+                            ""
+                    );
+                });
     }
 
     @Transactional
@@ -209,5 +241,13 @@ public class ChatbotConversationHistoryService {
 
     private String toString(Instant instant) {
         return instant == null ? null : instant.toString();
+    }
+
+    private int safePage(int page) {
+        return Math.max(0, page);
+    }
+
+    private int safeSize(int size) {
+        return Math.min(100, Math.max(1, size));
     }
 }
