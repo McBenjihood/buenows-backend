@@ -33,16 +33,19 @@ public class ChatbotService {
     private final OpenAiResponsesClient openAiClient;
     private final PromptBuilder promptBuilder;
     private final ContactExtractor contactExtractor;
+    private final ChatbotConversationHistoryService historyService;
 
     public ChatbotService(ChatbotProperties properties, ChatbotCompanyConfigService companyConfigService,
                           ChatbotSessionStore sessionStore, OpenAiResponsesClient openAiClient,
-                          PromptBuilder promptBuilder, ContactExtractor contactExtractor) {
+                          PromptBuilder promptBuilder, ContactExtractor contactExtractor,
+                          ChatbotConversationHistoryService historyService) {
         this.properties = properties;
         this.companyConfigService = companyConfigService;
         this.sessionStore = sessionStore;
         this.openAiClient = openAiClient;
         this.promptBuilder = promptBuilder;
         this.contactExtractor = contactExtractor;
+        this.historyService = historyService;
     }
 
     public ConfigResponse publicConfig(String language) { return companyConfigService.publicConfig(language); }
@@ -77,20 +80,31 @@ public class ChatbotService {
         if (!properties.openAiConfigured()) throw new ChatbotUnavailableException(ChatbotText.t(language, "openAiMissing"), 503);
 
         ChatbotCompanyConfig config = companyConfigService.loadConfig();
-        Classification classification = classify(config, session, userMessage, language);
-        session.incrementUserMessageCount();
-        session.addMessage("user", userMessage, properties.maxMessageLength());
+        historyService.saveUserMessage(config, session, userMessage);
+        try {
+            Classification classification = classify(config, session, userMessage, language);
+            session.incrementUserMessageCount();
+            session.addMessage("user", userMessage, properties.maxMessageLength());
 
-        if (classification.decision() == ClassificationDecision.REJECT) {
-            String reply = ChatbotText.t(language, "rejected", Map.of("companyName", config.companyName()));
+            if (classification.decision() == ClassificationDecision.REJECT) {
+                String reply = ChatbotText.t(language, "rejected", Map.of("companyName", config.companyName()));
+                session.addMessage("assistant", reply, 4000);
+                session.end(classification.category());
+                historyService.saveAssistantMessage(config, session, reply, ChatbotConversationHistoryService.STATUS_REJECTED);
+                return new ChatResponse(reply, session.id(), language, true);
+            }
+
+            String reply = generateReply(config, session, classification, language);
             session.addMessage("assistant", reply, 4000);
-            session.end(classification.category());
-            return new ChatResponse(reply, session.id(), language, true);
+            String status = replyLooksLikeTemplate(reply)
+                    ? ChatbotConversationHistoryService.STATUS_COMPLETED
+                    : ChatbotConversationHistoryService.STATUS_ACTIVE;
+            historyService.saveAssistantMessage(config, session, reply, status);
+            return new ChatResponse(reply, session.id(), language, false);
+        } catch (RuntimeException exception) {
+            historyService.markError(session.id());
+            throw exception;
         }
-
-        String reply = generateReply(config, session, classification, language);
-        session.addMessage("assistant", reply, 4000);
-        return new ChatResponse(reply, session.id(), language, false);
     }
 
     public HealthResponse health() {

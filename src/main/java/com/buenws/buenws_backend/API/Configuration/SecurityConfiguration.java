@@ -65,6 +65,7 @@ public class SecurityConfiguration {
                                 "/api/admin/users/delete",
                                 "/api/admin/users/update-profile",
                                 "/api/admin/users/update-role",
+                                "/api/admin/chatbot/**",
                                 "/api/inquiry/contact-submissions",
                                 "/api/user/auth/login",
                                 "/api/user/auth/register",
@@ -108,6 +109,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.DELETE, "/api/admin/users/delete").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/users/update-profile").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/users/update-role").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/chatbot/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/admin/chatbot/**").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/api/user/auth").authenticated()
 

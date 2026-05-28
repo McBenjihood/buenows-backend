@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public record ChatbotCompanyConfig(
         String botName,
+        String companyKey,
         String companyName,
         String subtitle,
         String welcomeMessage,

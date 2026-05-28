@@ -16,6 +16,7 @@ public class ChatbotProperties {
     private final int maxContextMessages;
     private final int maxContextChars;
     private final int sessionTtlMinutes;
+    private final int historyRetentionDays;
     private final String trustedProxyCidrs;
     private final boolean healthDetails;
     private final boolean rateLimitsActive;
@@ -36,6 +37,7 @@ public class ChatbotProperties {
             @Value("${app.chatbot.max-context-messages:${MAX_CONTEXT_MESSAGES:16}}") int maxContextMessages,
             @Value("${app.chatbot.max-context-chars:${MAX_CONTEXT_CHARS:9000}}") int maxContextChars,
             @Value("${app.chatbot.session-ttl-minutes:${SESSION_TTL_MINUTES:360}}") int sessionTtlMinutes,
+            @Value("${app.chatbot.history-retention-days:${CHATBOT_HISTORY_RETENTION_DAYS:7}}") int historyRetentionDays,
             @Value("${app.trusted-proxy-cidrs:${APP_TRUSTED_PROXY_CIDRS:loopback,private}}") String trustedProxyCidrs,
             @Value("${app.chatbot.health-details:${CHATBOT_HEALTH_DETAILS:false}}") boolean healthDetails,
             @Value("${app.chatbot.rate-limits:${RATE_LIMITS:active}}") String rateLimits,
@@ -55,6 +57,7 @@ public class ChatbotProperties {
         this.maxContextMessages = positive(maxContextMessages, 16);
         this.maxContextChars = positive(maxContextChars, 9000);
         this.sessionTtlMinutes = positive(sessionTtlMinutes, 360);
+        this.historyRetentionDays = Math.min(7, positive(historyRetentionDays, 7));
         this.trustedProxyCidrs = withDefault(trustedProxyCidrs, "loopback,private");
         this.healthDetails = healthDetails;
         this.rateLimitsActive = !"inactive".equalsIgnoreCase(clean(rateLimits));
@@ -77,6 +80,7 @@ public class ChatbotProperties {
     public int maxContextMessages() { return maxContextMessages; }
     public int maxContextChars() { return maxContextChars; }
     public int sessionTtlMinutes() { return sessionTtlMinutes; }
+    public int historyRetentionDays() { return historyRetentionDays; }
     public String trustedProxyCidrs() { return trustedProxyCidrs; }
     public boolean healthDetails() { return healthDetails; }
     public boolean rateLimitsActive() { return rateLimitsActive; }

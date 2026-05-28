@@ -68,7 +68,7 @@ public class ChatbotCompanyConfigService {
                 text(localized, "subtitle", config.subtitle()),
                 text(localized, "welcomeMessage", english ? "Hello! How can I help you with a website, backend system, automation or AI solution?" : config.welcomeMessage()),
                 text(localized, "placeholder", english ? "Write your message..." : config.placeholder()),
-                text(localized, "privacyNotice", english ? "Please do not send passwords, payment data, ID documents or private documents. The chatbot can make mistakes; if something behaves incorrectly, a short report with context helps us improve it." : config.privacyNotice()),
+                text(localized, "privacyNotice", english ? "Please do not send passwords, payment data, ID documents or private documents. Conversations may be stored for up to 7 days. The chatbot can make mistakes." : config.privacyNotice()),
                 properties.maxMessageLength(),
                 theme,
                 handoff,
@@ -82,6 +82,7 @@ public class ChatbotCompanyConfigService {
 
     public String buildCompanyContext(ChatbotCompanyConfig config) {
         ObjectNode root = objectMapper.createObjectNode();
+        root.put("companyKey", config.companyKey());
         root.put("companyName", config.companyName());
         root.put("botName", config.botName());
         root.set("handoff", config.handoff());
@@ -117,6 +118,7 @@ public class ChatbotCompanyConfigService {
     private ChatbotCompanyConfig normalize(JsonNode raw) {
         return new ChatbotCompanyConfig(
                 text(raw, "botName", "Chat Assistant"),
+                text(raw, "companyKey", slug(text(raw, "companyName", "company"))),
                 text(raw, "companyName", "Company"),
                 text(raw, "subtitle", ""),
                 text(raw, "welcomeMessage", ""),
@@ -143,6 +145,14 @@ public class ChatbotCompanyConfigService {
     private static String text(JsonNode node, String field, String fallback) {
         String value = node == null ? "" : node.path(field).asText("");
         return value == null || value.isBlank() ? fallback : ChatbotText.cleanInlineText(value, 800);
+    }
+
+    private static String slug(String value) {
+        String slug = ChatbotText.cleanInlineText(value, 120)
+                .toLowerCase()
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-+|-+$", "");
+        return slug.isBlank() ? "company" : slug;
     }
 
     private ObjectNode object(JsonNode node) {

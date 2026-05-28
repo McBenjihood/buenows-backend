@@ -67,6 +67,43 @@ public class Records
             java.util.List<String> authorities,
             String created_at
     ){}
+    public record AdminChatbotCompanyResponse(
+            String company_key,
+            String company_name
+    ){}
+    public record AdminChatbotConversationSummaryResponse(
+            String conversation_id,
+            String company_key,
+            String company_name,
+            String language,
+            String status,
+            int message_count,
+            String preview,
+            String created_at,
+            String updated_at,
+            String expires_at
+    ){}
+    public record AdminChatbotMessageResponse(
+            long message_id,
+            int sequence_number,
+            String role,
+            String content,
+            String created_at
+    ){}
+    public record AdminChatbotConversationDetailResponse(
+            String conversation_id,
+            String company_key,
+            String company_name,
+            String language,
+            String status,
+            int message_count,
+            String preview,
+            String created_at,
+            String updated_at,
+            String ended_at,
+            String expires_at,
+            java.util.List<AdminChatbotMessageResponse> messages
+    ){}
     public record AdminUpdateRoleRequest(
             @NotBlank(message = "Role is required")
             String role,

@@ -16,7 +16,7 @@
       welcomeMessage: "Hallo! Wie kann ich dir helfen?",
       placeholder: "Schreib deine Frage...",
       privacyNotice:
-        "Bitte senden Sie keine Passwoerter, Zahlungsdaten, Ausweise oder privaten Dokumente. Der Chatbot kann Fehler machen; bei Fehlverhalten hilft uns eine kurze Meldung mit Kontext.",
+        "Bitte senden Sie keine Passwoerter, Zahlungsdaten, Ausweise oder privaten Dokumente. Gespraeche koennen bis zu 7 Tage gespeichert werden. Der Chatbot kann Fehler machen.",
       launcherLabel: "Chat oeffnen",
       handoffLabel: "Kontakt aufnehmen",
       closeLabel: "Chat schliessen",
@@ -36,7 +36,7 @@
       welcomeMessage: "Hello! How can I help you?",
       placeholder: "Write your message...",
       privacyNotice:
-        "Please do not send passwords, payment data, ID documents or private documents. The chatbot can make mistakes; if something behaves incorrectly, a short report with context helps us improve it.",
+        "Please do not send passwords, payment data, ID documents or private documents. Conversations may be stored for up to 7 days. The chatbot can make mistakes.",
       launcherLabel: "Open chat",
       handoffLabel: "Contact us",
       closeLabel: "Close chat",

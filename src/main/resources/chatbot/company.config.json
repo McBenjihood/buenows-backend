@@ -1,12 +1,13 @@
 {
   "botName": "Bueno Assistant",
+  "companyKey": "bueno-ws",
   "companyName": "Bueno Web Solutions",
   "language": "Deutsch",
   "tone": "freundlich, professionell, direkt, einfach verständlich und lösungsorientiert",
   "subtitle": "Antwortet zu Websites, Backend-Systemen, Automatisierung und KI.",
   "welcomeMessage": "Hallo! Wie kann ich Ihnen bei einer Website, einem Backend-System, Automatisierung oder einer KI-Lösung helfen?",
   "placeholder": "Schreiben Sie Ihre Frage...",
-  "privacyNotice": "Bitte senden Sie keine Passwörter, Zahlungsdaten, Ausweise oder privaten Dokumente. Der Chatbot kann Fehler machen; bei Fehlverhalten hilft uns eine kurze Meldung mit Kontext.",
+  "privacyNotice": "Bitte senden Sie keine Passwörter, Zahlungsdaten, Ausweise oder privaten Dokumente. Gespräche können bis zu 7 Tage gespeichert werden. Der Chatbot kann Fehler machen.",
   "theme": {
     "primaryColor": "#42b883",
     "accentColor": "#42b883",
@@ -264,7 +265,8 @@
         "Kontaktformular: E-Mail-Adresse, Betreff, Nachricht und Zeitpunkt der Anfrage.",
         "Registrierung und Login: E-Mail-Adresse, Vorname, Nachname, Rollen/Berechtigungen, Erstellungszeitpunkt und verschlüsselte Passwörter.",
         "Passwort-Reset und OTP: E-Mail-Adresse, einmaliger Bestätigungscode, Versuche, Ablaufzeit, Sperrfristen und verifizierter Token.",
-        "Admin-Bereich: Kontaktanfragen und registrierte Nutzer, soweit zur Verwaltung erforderlich.",
+        "Admin-Bereich: Kontaktanfragen, registrierte Nutzer und Chatbot-Gespräche, soweit zur Verwaltung und Qualitätskontrolle erforderlich.",
+        "Website-Chatbot: eingegebene Chatnachrichten, gewählte Sprache, temporäre Session-ID, Gesprächsverlauf und technische Anfrageinformationen. Inhalte können zur Antwortgenerierung an den eingesetzten KI-Anbieter verarbeitet werden.",
         "Technische Logs: IP-Adresse beziehungsweise technische Anfrageinformationen, Zeitpunkt, URL, Statuscode und Fehlerdaten, soweit für Betrieb und Sicherheit erforderlich."
       ],
       "retention": [
@@ -272,6 +274,7 @@
         "Nutzerkonten bleiben bestehen, bis sie gelöscht werden oder eine weitere Aufbewahrung erforderlich ist.",
         "Access Tokens laufen nach ca. 1 Stunde ab, Refresh Tokens nach ca. 7 Tagen oder bei Logout.",
         "OTP-Codes laufen nach ca. 15 Minuten ab und werden nach Nutzung, Ablauf oder zu vielen Versuchen deaktiviert.",
+        "Chatbot-Gespräche werden höchstens 7 Tage gespeichert und danach automatisch gelöscht. Autorisierte Admins können einzelne Gespräche früher löschen.",
         "Technische Logs werden grundsätzlich 14 Tage aufbewahrt."
       ],
       "security": "Bueno Web Solutions setzt technische und organisatorische Massnahmen ein, darunter HTTPS, verschlüsselte Passwörter, HttpOnly-Cookies, rollenbasierte Zugriffe, Rate-Limits und eingeschränkte Datenbank-Erreichbarkeit. Absolute Sicherheit lässt sich dennoch nicht zusagen.",
