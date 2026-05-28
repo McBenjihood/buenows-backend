@@ -20,6 +20,212 @@ class ChatbotServiceSessionLifecycleTest {
 
     @Test
     void completedHandoffEndsSessionSoNextMessageStartsFresh() {
+        ServiceFixture fixture = fixture(
+                new AssistantMetadata(
+                        """
+                        Danke, das ist eine klare Anfrage.
+
+                        Ich kann Ihre Angaben nicht automatisch ins Kontaktformular eintragen oder ans Team senden.
+                        Bitte senden Sie die Anfrage deshalb über das Kontaktformular:
+                        https://bueno-ws.ch/contact
+
+                        Für das Formular können Sie diese Angaben übernehmen:
+
+                        E-Mail
+                        noelwenger@fabio.com
+
+                        Gewünschte Lösung
+                        Website-Erneuerung
+
+                        Nachricht
+                        Die bestehende Website soll erneuert werden.
+                        """,
+                        true,
+                        "noelwenger@fabio.com",
+                        "",
+                        "Website-Erneuerung",
+                        "Die bestehende Website soll erneuert werden."
+                ),
+                new AssistantMetadata(
+                        "Welcher Ablauf soll als Erstes automatisiert werden?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                )
+        );
+
+        ChatResponse completed = fixture.service().chat(
+                null,
+                "de",
+                "Meine Website ist veraltet und soll erneuert werden. Kontakt: noelwenger@fabio.com"
+        );
+
+        assertTrue(completed.sessionEnded());
+        assertTrue(fixture.sessionStore().find(completed.sessionId()).ended());
+
+        ChatResponse next = fixture.service().chat(
+                completed.sessionId(),
+                "de",
+                "Ich würde mich gerne über eine KI Automatisierung informieren"
+        );
+
+        assertFalse(next.sessionEnded());
+        assertNotEquals(completed.sessionId(), next.sessionId());
+        assertFalse(next.reply().contains("noelwenger@fabio.com"));
+        assertFalse(next.reply().contains("Kontaktformular"));
+    }
+
+    @Test
+    void vagueAutomationInquiryDoesNotAskForContactTooEarly() {
+        ServiceFixture fixture = fixture(
+                new AssistantMetadata(
+                        "Wie können wir Sie am besten kontaktieren?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                )
+        );
+
+        ChatResponse response = fixture.service().chat(
+                null,
+                "de",
+                "Ich würde mich gerne über ein Projekt für KI Automatisierung informieren"
+        );
+
+        assertFalse(response.sessionEnded());
+        assertTrue(response.reply().contains("Ablauf"));
+        assertFalse(response.reply().contains("kontaktieren"));
+        assertFalse(response.reply().contains("Kontaktformular"));
+    }
+
+    @Test
+    void contactDetailsDoNotCompleteVagueAutomationInquiry() {
+        ServiceFixture fixture = fixture(
+                new AssistantMetadata(
+                        """
+                        Danke, das ist eine klare Anfrage.
+
+                        Ich kann Ihre Angaben nicht automatisch ins Kontaktformular eintragen oder ans Team senden.
+                        Bitte senden Sie die Anfrage deshalb über das Kontaktformular:
+                        https://bueno-ws.ch/contact
+
+                        Für das Formular können Sie diese Angaben übernehmen:
+
+                        Telefon
+                        076 749 69 52
+
+                        Gewünschte Lösung
+                        KI-Automatisierung
+
+                        Nachricht
+                        Anfrage zu einem Projekt für KI-Automatisierung.
+                        """,
+                        true,
+                        "",
+                        "076 749 69 52",
+                        "KI-Automatisierung",
+                        "Anfrage zu einem Projekt für KI-Automatisierung."
+                )
+        );
+
+        ChatResponse response = fixture.service().chat(
+                null,
+                "de",
+                "Ich würde mich gerne über ein Projekt für KI Automatisierung informieren. Meine Telefonnummer ist 076 749 69 52"
+        );
+
+        assertFalse(response.sessionEnded());
+        assertTrue(response.reply().contains("Ablauf"));
+        assertFalse(response.reply().contains("Kontaktformular"));
+        assertFalse(response.reply().contains("076 749 69 52"));
+    }
+
+    @Test
+    void ambiguousChannelReplyAfterProjectQuestionIsClarified() {
+        ServiceFixture fixture = fixture(
+                new AssistantMetadata(
+                        "Welcher Ablauf soll als Erstes automatisiert werden?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                ),
+                new AssistantMetadata(
+                        "Welche spezifischen Funktionen oder Prozesse möchten Sie mit der KI-Automatisierung für SMS verbessern?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                )
+        );
+
+        ChatResponse first = fixture.service().chat(
+                null,
+                "de",
+                "Ich würde mich gerne über ein Projekt für KI Automatisierung informieren"
+        );
+
+        ChatResponse second = fixture.service().chat(
+                first.sessionId(),
+                "de",
+                "sms"
+        );
+
+        assertFalse(second.sessionEnded());
+        assertTrue(second.reply().contains("SMS-Automatisierung"));
+        assertTrue(second.reply().contains("Kontaktweg"));
+    }
+
+    @Test
+    void phoneNumberAfterAmbiguousChannelStillRequiresProjectContext() {
+        ServiceFixture fixture = fixture(
+                new AssistantMetadata(
+                        "Welcher Ablauf soll als Erstes automatisiert werden?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                ),
+                new AssistantMetadata(
+                        "Welche spezifischen Funktionen oder Prozesse möchten Sie mit der KI-Automatisierung für SMS verbessern?",
+                        false,
+                        "",
+                        "",
+                        "",
+                        ""
+                ),
+                new AssistantMetadata(
+                        "Was genau möchten Sie mit der KI-Automatisierung für SMS erreichen?",
+                        false,
+                        "",
+                        "076 749 69 52",
+                        "",
+                        ""
+                )
+        );
+
+        ChatResponse first = fixture.service().chat(
+                null,
+                "de",
+                "Ich würde mich gerne über ein Projekt für KI Automatisierung informieren"
+        );
+        ChatResponse second = fixture.service().chat(first.sessionId(), "de", "sms");
+        ChatResponse third = fixture.service().chat(second.sessionId(), "de", "meine telefon nummer ist 076 749 69 52");
+
+        assertFalse(third.sessionEnded());
+        assertTrue(third.reply().contains("Ablauf"));
+        assertFalse(third.reply().contains("SMS"));
+        assertFalse(third.reply().contains("076 749 69 52"));
+    }
+
+    private ServiceFixture fixture(AssistantMetadata... replies) {
         ChatbotProperties properties = new ChatbotProperties(
                 "sk-test",
                 "gpt-test",
@@ -61,63 +267,15 @@ class ChatbotServiceSessionLifecycleTest {
         when(configService.buildCompanyContext(config)).thenReturn("{}");
         when(promptBuilder.classificationInstructions(any(), any())).thenReturn("classify");
         when(promptBuilder.replyInstructions(any(), any(), any())).thenReturn("reply");
+        when(promptBuilder.repairInstructions(any(), any(), any(), any())).thenReturn("repair");
         when(openAiClient.classify(any(), any())).thenReturn(new Classification(ClassificationDecision.ANSWER, "project_lead", 0.95, "test"));
-        when(openAiClient.createReply(any(), any())).thenReturn(
-                new AssistantMetadata(
-                        """
-                        Danke, das ist eine klare Anfrage.
-
-                        Ich kann Ihre Angaben nicht automatisch ins Kontaktformular eintragen oder ans Team senden.
-                        Bitte senden Sie die Anfrage deshalb über das Kontaktformular:
-                        https://bueno-ws.ch/contact
-
-                        Für das Formular können Sie diese Angaben übernehmen:
-
-                        E-Mail
-                        noelwenger@fabio.com
-
-                        Gewünschte Lösung
-                        Website-Erneuerung
-
-                        Nachricht
-                        Die bestehende Website soll erneuert werden.
-                        """,
-                        true,
-                        "noelwenger@fabio.com",
-                        "",
-                        "Website-Erneuerung",
-                        "Die bestehende Website soll erneuert werden."
-                ),
-                new AssistantMetadata(
-                        "Welcher Ablauf soll als Erstes automatisiert werden?",
-                        false,
-                        "",
-                        "",
-                        "",
-                        ""
-                )
-        );
-
-        ChatResponse completed = service.chat(
-                null,
-                "de",
-                "Meine Website ist veraltet und soll erneuert werden. Kontakt: noelwenger@fabio.com"
-        );
-
-        assertTrue(completed.sessionEnded());
-        assertTrue(sessionStore.find(completed.sessionId()).ended());
-
-        ChatResponse next = service.chat(
-                completed.sessionId(),
-                "de",
-                "Ich würde mich gerne über eine KI Automatisierung informieren"
-        );
-
-        assertFalse(next.sessionEnded());
-        assertNotEquals(completed.sessionId(), next.sessionId());
-        assertFalse(next.reply().contains("noelwenger@fabio.com"));
-        assertFalse(next.reply().contains("Kontaktformular"));
+        int[] replyIndex = {0};
+        when(openAiClient.createReply(any(), any())).thenAnswer(invocation -> replies[Math.min(replyIndex[0]++, replies.length - 1)]);
+        when(openAiClient.repairReply(any(), any(), any(), any())).thenReturn(replies[replies.length - 1]);
+        return new ServiceFixture(service, sessionStore);
     }
+
+    private record ServiceFixture(ChatbotService service, ChatbotSessionStore sessionStore) {}
 
     private ChatbotCompanyConfig testConfig() {
         ObjectNode empty = objectMapper.createObjectNode();

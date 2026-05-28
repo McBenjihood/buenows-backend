@@ -91,6 +91,7 @@ body.demo-body {
 .bws-chat-launcher:focus-visible,
 .bws-close-btn:focus-visible,
 .bws-send-btn:focus-visible,
+.bws-new-session-btn:focus-visible,
 .bws-chat-input:focus-visible,
 .bws-contact-link:focus-visible {
   outline: 3px solid rgba(66, 184, 131, 0.28);
@@ -243,6 +244,38 @@ body.demo-body {
   padding: 0 4px;
   color: var(--bws-muted);
   font-size: 13px;
+}
+
+.bws-session-ended {
+  align-self: stretch;
+  padding: 12px;
+  color: var(--bws-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--bws-border-soft);
+  border-radius: 10px;
+}
+
+.bws-session-ended p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.bws-new-session-btn {
+  min-height: 34px;
+  padding: 0 12px;
+  color: #101410;
+  background: var(--bws-primary);
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.bws-new-session-btn:hover {
+  background: var(--bws-primary-strong);
 }
 
 .bws-chat-footer {

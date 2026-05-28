@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 @Service
 public class ChatbotService {
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("\\b(Gewuenschte Loesung|Gewünschte Lösung|Desired solution|Nachricht|Message)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern CONTACT_ASK_PATTERN = Pattern.compile("\\b(best contact|best way to contact|email address|phone number|Kontaktmoeglichkeit|Kontaktmöglichkeit|E-Mail-Adresse|Telefonnummer|per Mail melden)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CONTACT_ASK_PATTERN = Pattern.compile("\\b(best contact|best way to contact|contact you|email address|phone number|Kontaktmoeglichkeit|Kontaktmöglichkeit|kontaktieren|E-Mail-Adresse|Telefonnummer|per Mail melden)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern BAD_FILLER_PATTERN = Pattern.compile("\\b(Das klingt|Es klingt|Danke fuer die Informationen|Danke für die Informationen|Es waere hilfreich|Es wäre hilfreich|Ich benoetige noch|Ich benötige noch|Moechten Sie|Möchten Sie|Koennten Sie|Könnten Sie|That sounds|It sounds|To clarify|This could involve|It would be helpful|Would you like to|Could you please|we can develop|we could develop)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern UNSAFE_PROMISE_PATTERN = Pattern.compile("\\b(we guarantee|we promise|guaranteed results|guaranteed leads|guaranteed customers|wir garantieren|wir versprechen|garantierte kunden|garantierte anfragen|sicher mehr kunden|sicher mehr anfragen)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern LANGUAGE_SWITCH_PATTERN = Pattern.compile("\\b(antworte|antworten|reply|respond|answer)\\b.{0,40}\\b(deutsch|englisch|german|english)\\b", Pattern.CASE_INSENSITIVE);
@@ -31,6 +31,7 @@ public class ChatbotService {
     private static final Pattern WEAK_QUESTION_PATTERN = Pattern.compile("\\b(Could you|K.nnten)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern MARKDOWN_LINK_PATTERN = Pattern.compile("\\[[^\\]]+]\\(https?://[^)]+\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern EARLY_HANDOFF_PATTERN = Pattern.compile("\\b(contact form|contact page|project request|Projekt anfragen|Kontaktformular|Kontaktseite|Formular|Anfrageformular|Handoff)\\b|https?://\\S+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CONTACT_PREFERENCE_PATTERN = Pattern.compile("\\b(sms|text message|telefon|phone|call|anruf|whatsapp|e-mail|email|mail)\\b", Pattern.CASE_INSENSITIVE);
 
     private final ChatbotProperties properties;
     private final ChatbotCompanyConfigService companyConfigService;
@@ -149,11 +150,16 @@ public class ChatbotService {
             reply = ChatbotText.cleanReply(metadata.reply());
         }
         if (needsEarlyProjectFallback(reply, session) || needsWeakProjectQuestionFallback(reply, session)) reply = buildProjectFollowUpFallback(session, language);
+        if (asksForContactOption(reply) && !hasEnoughProjectContextForHandoff(session)) reply = buildProjectFollowUpFallback(session, language);
+        if (asksForContactOption(reply) && isContactPreferenceWithoutConcreteInfo(getLastUserMessage(session))) reply = buildConcreteContactQuestion(getLastUserMessage(session), language);
+        if (isAmbiguousChannelReply(session)) reply = buildChannelClarificationQuestion(getLastUserMessage(session), language);
+        if (contactExtractor.textHasContactInfo(getLastUserMessage(session)) && !hasEnoughProjectContextForHandoff(session)) reply = buildProjectFollowUpFallback(session, language);
 
         if (needsStructuredHandoffRecovery(session, reply)) {
             metadata = merge(metadata, openAiClient.extractHandoffMetadata(promptBuilder.handoffMetadataInstructions(config, language), buildConversationForReply(session), reply));
         }
         reply = maybeFormatStructuredHandoff(config, session, metadata, reply, language);
+        if (replyLooksLikeTemplate(reply) && !hasEnoughProjectContextForHandoff(session)) reply = buildProjectFollowUpFallback(session, language);
         if (replyLooksLikeTemplate(reply) && !contactExtractor.conversationHasContactInfo(session.messages())) reply = ChatbotText.t(language, "contactMissing");
         if (replyLooksWrongLanguage(reply, language) || isLanguageLockOnlyReply(reply) || missesLanguageLockAcknowledgement(reply, session, language)) {
             if (missesLanguageLockAcknowledgement(reply, session, language) && replyLooksLikeTemplate(reply) && !replyLooksWrongLanguage(reply, language)) reply = languageLockSentence(language) + "\n\n" + reply;
@@ -195,6 +201,7 @@ public class ChatbotService {
     private String maybeFormatStructuredHandoff(ChatbotCompanyConfig config, ChatSession session, AssistantMetadata metadata, String reply, String language) {
         ContactInfo contact = contactExtractor.extractFromConversation(session.messages());
         if (!contact.hasAny()) return reply;
+        if (!hasEnoughProjectContextForHandoff(session)) return reply;
         boolean shouldHandoff = metadata.readyForHandoff() || replyLooksLikeTemplate(reply) || needsStructuredHandoffRecovery(session, reply);
         if (!shouldHandoff) return reply;
         String desiredSolution = firstNonBlank(metadata.desiredSolution(), inferDesiredSolution(session, reply, language));
@@ -225,6 +232,7 @@ public class ChatbotService {
         if (replyLooksWrongLanguage(reply, language)) return "The reply is not in the fixed session language.";
         if (MARKDOWN_LINK_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses a Markdown link. Use plain text only. Do not link to the contact form before final handoff.";
         if (needsEarlyProjectFallback(reply, session)) return "The reply redirects to the contact form too early. Continue the conversation by asking one practical follow-up question in chat.";
+        if (asksForContactOption(reply) && !hasEnoughProjectContextForHandoff(session)) return "The reply asks for contact information before the project need is clear. Ask what process, task or current workflow should be improved first.";
         if (metadata.readyForHandoff() && !replyLooksLikeTemplate(reply)) return "The metadata says handoff is ready but the reply does not use the exact contact-form template.";
         if (contactExtractor.conversationHasContactInfo(session.messages()) && asksForContactOption(reply)) return "The user already provided contact information. Generate the contact-form template if the project is concrete enough.";
         if (lastMessageHasContactAndLanguageSwitch(session) && !replyLooksLikeTemplate(reply)) return "The user asked to switch language and provided contact information. Keep the fixed language and generate the template if context is clear.";
@@ -234,7 +242,7 @@ public class ChatbotService {
     }
 
     private boolean needsStructuredHandoffRecovery(ChatSession session, String reply) {
-        return contactExtractor.conversationHasContactInfo(session.messages()) && !replyLooksLikeTemplate(reply) && (lastMessageHasContactAndLanguageSwitch(session) || asksForContactOption(reply) || asksOptionalDetailAfterContact(session, reply));
+        return hasEnoughProjectContextForHandoff(session) && contactExtractor.conversationHasContactInfo(session.messages()) && !replyLooksLikeTemplate(reply) && (lastMessageHasContactAndLanguageSwitch(session) || asksForContactOption(reply) || asksOptionalDetailAfterContact(session, reply));
     }
     private boolean needsEarlyProjectFallback(String reply, ChatSession session) {
         String value = reply == null ? "" : reply;
@@ -288,6 +296,78 @@ public class ChatbotService {
                     : "Which process should be automated first?";
         }
         return buildLanguageSafeFallback(session, language);
+    }
+    private boolean hasEnoughProjectContextForHandoff(ChatSession session) {
+        List<String> fragments = projectContextFragments(session);
+        if (fragments.isEmpty()) return false;
+        String text = String.join(" ", fragments).toLowerCase(Locale.ROOT);
+        if (containsAny(text,
+                "rechnung", "rechnungen", "invoice", "invoicing", "zahlung", "mahnung", "abo", "subscription",
+                "website", "webseite", "redesign", "terminbuchung", "booking", "kundengewinnung", "leads",
+                "backend", "dashboard", "admin", "login", "portal", "datenbank", "database",
+                "gmail", "e-mail", "email", "mail", "antwort", "support", "kundensupport", "chatbot",
+                "telefonassistent", "phone assistant", "dokument", "pdf", "wissens", "knowledge",
+                "manuell", "manual", "current process", "aktueller ablauf", "bestehend", "veraltet")) return true;
+        if (fragments.size() >= 2 && wordCount(text) >= 12) return true;
+        return wordCount(text) >= 18 && containsAny(text, "ki", "ai", "automatisierung", "automation", "automate", "automatisieren");
+    }
+    private List<String> projectContextFragments(ChatSession session) {
+        List<String> fragments = new ArrayList<>();
+        for (ConversationMessage message : session.messages()) {
+            if (!"user".equals(message.role())) continue;
+            String cleaned = stripContactInfo(message.content());
+            if (cleaned.isBlank() || isContactPreferenceWithoutConcreteInfo(cleaned)) continue;
+            fragments.add(cleaned);
+        }
+        return fragments;
+    }
+    private String stripContactInfo(String value) {
+        return (value == null ? "" : value)
+                .replaceAll("(?i)[\\w.-]+@[\\w.-]+\\.[a-z]{2,}", " ")
+                .replaceAll("(?i)\\b(kontakt|contact|meine telefon nummer ist|meine telefonnummer ist|telefonnummer|phone number|per mail|per e-mail|my email is)\\b[: ]*", " ")
+                .replaceAll("(?<!\\w)(?:\\+?\\d[\\d\\s().-]{6,}\\d)(?!\\w)", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+    private int wordCount(String value) {
+        String cleaned = value == null ? "" : value.trim();
+        if (cleaned.isBlank()) return 0;
+        return cleaned.split("\\s+").length;
+    }
+    private boolean isContactPreferenceWithoutConcreteInfo(String value) {
+        String text = value == null ? "" : value.trim();
+        return !contactExtractor.textHasContactInfo(text) && text.length() <= 80 && CONTACT_PREFERENCE_PATTERN.matcher(text).find();
+    }
+    private boolean isAmbiguousChannelReply(ChatSession session) {
+        String lastUser = getLastUserMessage(session);
+        String lastQuestion = getLastAssistantQuestion(session);
+        return getUserMessageCount(session) > 1 && isContactPreferenceWithoutConcreteInfo(lastUser) && !lastQuestion.isBlank() && !asksForContactOption(lastQuestion);
+    }
+    private String buildConcreteContactQuestion(String lastUserMessage, String language) {
+        String text = lastUserMessage == null ? "" : lastUserMessage.toLowerCase(Locale.ROOT);
+        if ("de".equals(language)) {
+            if (containsAny(text, "telefon", "phone", "call", "anruf", "sms", "whatsapp")) return "Wie lautet die Telefonnummer, unter der wir Sie erreichen können?";
+            if (containsAny(text, "mail", "email", "e-mail")) return "Wie lautet Ihre E-Mail-Adresse?";
+            return "Wie lautet Ihre E-Mail-Adresse oder Telefonnummer?";
+        }
+        if (containsAny(text, "telefon", "phone", "call", "anruf", "sms", "whatsapp")) return "What phone number can we use to contact you?";
+        if (containsAny(text, "mail", "email", "e-mail")) return "What is your email address?";
+        return "What email address or phone number can we use to contact you?";
+    }
+    private String buildChannelClarificationQuestion(String lastUserMessage, String language) {
+        String text = lastUserMessage == null ? "" : lastUserMessage.toLowerCase(Locale.ROOT);
+        if ("de".equals(language)) {
+            if (containsAny(text, "sms")) return "Meinen Sie eine SMS-Automatisierung oder SMS nur als Kontaktweg?";
+            if (containsAny(text, "telefon", "phone", "call", "anruf")) return "Meinen Sie einen Telefonassistenten oder Telefon nur als Kontaktweg?";
+            if (containsAny(text, "whatsapp")) return "Meinen Sie eine WhatsApp-Automatisierung oder WhatsApp nur als Kontaktweg?";
+            if (containsAny(text, "mail", "email", "e-mail")) return "Meinen Sie eine E-Mail-Automatisierung oder E-Mail nur als Kontaktweg?";
+            return "Meinen Sie damit den gewünschten Ablauf oder nur den Kontaktweg?";
+        }
+        if (containsAny(text, "sms", "text message")) return "Do you mean SMS automation or SMS only as the contact channel?";
+        if (containsAny(text, "telefon", "phone", "call")) return "Do you mean a phone assistant or phone only as the contact channel?";
+        if (containsAny(text, "whatsapp")) return "Do you mean WhatsApp automation or WhatsApp only as the contact channel?";
+        if (containsAny(text, "mail", "email", "e-mail")) return "Do you mean email automation or email only as the contact channel?";
+        return "Do you mean that as the process to automate or only as the contact channel?";
     }
     private String enforceFinalReplySafety(String reply, String language) {
         String cleaned = ChatbotText.cleanReply(reply)

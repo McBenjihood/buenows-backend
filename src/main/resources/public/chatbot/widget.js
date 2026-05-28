@@ -29,7 +29,11 @@
       chatError: "Chatbot Fehler.",
       unavailable: "Der Chatbot ist gerade nicht erreichbar.",
       fallbackReply: "Entschuldigung, ich konnte gerade keine Antwort erstellen.",
-      retryPrefix: "Bitte versuchen Sie es in {seconds} erneut."
+      retryPrefix: "Bitte versuchen Sie es in {seconds} erneut.",
+      sessionEndedMessage:
+        "Diese Chat-Session ist abgeschlossen. Für eine neue Anfrage starten Sie bitte einen neuen Chat.",
+      newSessionLabel: "Neuen Chat starten",
+      newSessionError: "Neue Session konnte nicht erstellt werden."
     },
     en: {
       subtitle: "How can I help?",
@@ -49,7 +53,11 @@
       chatError: "Chatbot error.",
       unavailable: "The chatbot is currently unavailable.",
       fallbackReply: "Sorry, I could not create a reply right now.",
-      retryPrefix: "Please try again in {seconds}."
+      retryPrefix: "Please try again in {seconds}.",
+      sessionEndedMessage:
+        "This chat session is complete. Please start a new chat for another request.",
+      newSessionLabel: "Start new chat",
+      newSessionError: "A new session could not be created."
     }
   };
   const uiText = UI_TEXT[uiLanguage];
@@ -89,6 +97,7 @@
 
   let isOpen = false;
   let isLoading = false;
+  let isConversationEnded = false;
   let config = fallbackConfig;
   let elements = null;
 
@@ -314,9 +323,12 @@
       setLoading(true);
 
       try {
-        const reply = await sendMessage(text);
+        const result = await sendMessage(text);
         typing.remove();
-        addMessage(reply, "bot");
+        addMessage(result.reply, "bot");
+        if (result.sessionEnded) {
+          showSessionEndedNotice();
+        }
       } catch (error) {
         typing.remove();
         addMessage(getDisplayErrorMessage(error), "bot");
@@ -414,8 +426,8 @@
 
   function setLoading(value) {
     isLoading = value;
-    elements.input.disabled = value;
-    elements.sendButton.disabled = value;
+    elements.input.disabled = value || isConversationEnded;
+    elements.sendButton.disabled = value || isConversationEnded;
   }
 
   function toggleChat(nextState) {
@@ -442,6 +454,10 @@
       return existingSessionId;
     }
 
+    return createSession();
+  }
+
+  async function createSession() {
     const response = await fetch(`${apiBase}/api/chatbot/session`, {
       method: "POST",
       headers: {
@@ -491,7 +507,54 @@
       setSessionId(data.sessionId);
     }
 
-    return data.reply || uiText.fallbackReply;
+    return {
+      reply: data.reply || uiText.fallbackReply,
+      sessionEnded: Boolean(data.sessionEnded)
+    };
+  }
+
+  function showSessionEndedNotice() {
+    isConversationEnded = true;
+    setLoading(false);
+
+    const notice = document.createElement("div");
+    notice.className = "bws-session-ended";
+
+    const message = document.createElement("p");
+    message.textContent = uiText.sessionEndedMessage;
+
+    const button = document.createElement("button");
+    button.className = "bws-new-session-btn";
+    button.type = "button";
+    button.textContent = uiText.newSessionLabel;
+    button.addEventListener("click", startNewSession);
+
+    notice.append(message, button);
+    elements.messages.appendChild(notice);
+    scrollToBottom();
+  }
+
+  async function startNewSession() {
+    if (isLoading) {
+      return;
+    }
+
+    clearSessionId();
+    isConversationEnded = false;
+    elements.messages.innerHTML = "";
+    elements.messages.dataset.started = "";
+    setLoading(true);
+
+    try {
+      await createSession();
+      addMessage(config.welcomeMessage, "bot");
+      elements.messages.dataset.started = "true";
+    } catch (error) {
+      addMessage(getDisplayErrorMessage(error) || uiText.newSessionError, "bot");
+    } finally {
+      setLoading(false);
+      elements.input.focus();
+    }
   }
 
   async function parseJsonResponse(response) {

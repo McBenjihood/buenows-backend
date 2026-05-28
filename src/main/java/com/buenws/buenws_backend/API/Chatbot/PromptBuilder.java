@@ -62,6 +62,8 @@ public class PromptBuilder {
                 "- Help the user clarify a potential website, backend, automation or AI project.",
                 "- If the classifier decision is clarify, ask one clear question and do not create a handoff template.",
                 "- For project inquiries, collect enough information for a useful project request: context, desired solution/problem, current process/tool or existing website, important functions, rough timeframe if available, and contact email or phone.",
+                "- Do not ask for contact information until the concrete project need is understandable enough to summarize.",
+                "- For generic AI or automation interest, first ask which process, task, customer interaction or current manual workflow should be improved.",
                 "- If project context is mostly clear but contact information is missing, ask only for the best contact option.",
                 "- If the current or recent user message contains contact information and the project request is concrete enough to summarize, generate the contact-form template now.",
                 "- Do not require budget, exact volume, full feature lists, integrations, or technical specifications before handoff.",
