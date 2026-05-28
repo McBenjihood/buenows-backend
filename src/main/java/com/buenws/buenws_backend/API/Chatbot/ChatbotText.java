@@ -17,17 +17,17 @@ public final class ChatbotText {
     private static final Map<String, Map<String, String>> TEXT = Map.of(
             "de", Map.ofEntries(
                     Map.entry("tooManyMessages", "Zu viele Nachrichten. Bitte warte kurz und versuche es erneut."),
-                    Map.entry("dailyChatLimit", "Tageslimit fuer Chat-Nachrichten erreicht. Bitte versuche es spaeter erneut."),
+                    Map.entry("dailyChatLimit", "Tageslimit für Chat-Nachrichten erreicht. Bitte versuche es später erneut."),
                     Map.entry("tooManySessions", "Zu viele neue Chats. Bitte warte kurz und versuche es erneut."),
-                    Map.entry("dailySessionLimit", "Tageslimit fuer neue Chats erreicht. Bitte versuche es spaeter erneut."),
+                    Map.entry("dailySessionLimit", "Tageslimit für neue Chats erreicht. Bitte versuche es später erneut."),
                     Map.entry("sessionMessageLimit", "Dieser Chat hat das Nachrichtenlimit erreicht. Bitte starte bei Bedarf einen neuen Chat."),
                     Map.entry("missingMessage", "Nachricht fehlt."),
                     Map.entry("shortMessage", "Nachricht ist zu kurz."),
-                    Map.entry("messageTooLong", "Nachricht ist zu lang. Bitte kuerze sie auf maximal {max} Zeichen."),
+                    Map.entry("messageTooLong", "Nachricht ist zu lang. Bitte kürze sie auf maximal {max} Zeichen."),
                     Map.entry("openAiMissing", "Der Chatbot ist noch nicht mit einem OpenAI API Key verbunden."),
-                    Map.entry("openAiInvalid", "Der OpenAI API Key konnte nicht verwendet werden. Bitte pruefe die Server-Konfiguration."),
-                    Map.entry("chatUnavailable", "Der Chatbot ist gerade nicht erreichbar. Bitte versuche es spaeter erneut."),
-                    Map.entry("rejected", "Dabei kann ich hier nicht helfen. Ich unterstuetze nur bei Fragen und Projektanfragen zu {companyName} und den angebotenen digitalen Loesungen."),
+                    Map.entry("openAiInvalid", "Der OpenAI API Key konnte nicht verwendet werden. Bitte prüfe die Server-Konfiguration."),
+                    Map.entry("chatUnavailable", "Der Chatbot ist gerade nicht erreichbar. Bitte versuche es später erneut."),
+                    Map.entry("rejected", "Dabei kann ich hier nicht helfen. Ich unterstütze nur bei Fragen und Projektanfragen zu {companyName} und den angebotenen digitalen Lösungen."),
                     Map.entry("contactMissing", "Wie k\u00f6nnen wir Sie am besten kontaktieren?")
             ),
             "en", Map.ofEntries(
@@ -84,6 +84,67 @@ public final class ChatbotText {
         String cleaned = cleanText(value, 4000).trim();
         cleaned = cleaned.replaceAll("(?is)^```(?:json)?\\s*", "").replaceAll("(?is)\\s*```$", "");
         return cleaned.trim();
+    }
+
+    public static String normalizeGermanOutput(String value) {
+        if (value == null || value.isBlank()) return value == null ? "" : value;
+        return value
+                .replaceAll("\\bueber\\b", "über")
+                .replaceAll("\\bUeber\\b", "Über")
+                .replaceAll("\\buebernehmen\\b", "übernehmen")
+                .replaceAll("\\bUebernehmen\\b", "Übernehmen")
+                .replaceAll("\\bfuer\\b", "für")
+                .replaceAll("\\bFuer\\b", "Für")
+                .replaceAll("\\bkoennen\\b", "können")
+                .replaceAll("\\bKoennen\\b", "Können")
+                .replaceAll("\\bkoennte\\b", "könnte")
+                .replaceAll("\\bKoennte\\b", "Könnte")
+                .replaceAll("\\bmoechte\\b", "möchte")
+                .replaceAll("\\bMoechte\\b", "Möchte")
+                .replaceAll("\\bmoechten\\b", "möchten")
+                .replaceAll("\\bMoechten\\b", "Möchten")
+                .replaceAll("\\bmoeglich\\b", "möglich")
+                .replaceAll("\\bMoeglich\\b", "Möglich")
+                .replaceAll("\\bmoegliche\\b", "mögliche")
+                .replaceAll("\\bMoegliche\\b", "Mögliche")
+                .replaceAll("\\bmoeglichkeit\\b", "möglichkeit")
+                .replaceAll("\\bMoeglichkeit\\b", "Möglichkeit")
+                .replaceAll("\\bKontaktmoeglichkeit\\b", "Kontaktmöglichkeit")
+                .replaceAll("\\bLoesung\\b", "Lösung")
+                .replaceAll("\\bloesung\\b", "lösung")
+                .replaceAll("\\bLoesungen\\b", "Lösungen")
+                .replaceAll("\\bloesungen\\b", "lösungen")
+                .replaceAll("\\bGewuenschte\\b", "Gewünschte")
+                .replaceAll("\\bgewuenschte\\b", "gewünschte")
+                .replaceAll("\\bgewuenscht\\b", "gewünscht")
+                .replaceAll("\\bwuenschen\\b", "wünschen")
+                .replaceAll("\\bWuenschen\\b", "Wünschen")
+                .replaceAll("\\bspaeter\\b", "später")
+                .replaceAll("\\bSpaeter\\b", "Später")
+                .replaceAll("\\bkuerze\\b", "kürze")
+                .replaceAll("\\bKuerze\\b", "Kürze")
+                .replaceAll("\\bkuerzen\\b", "kürzen")
+                .replaceAll("\\bKuerzen\\b", "Kürzen")
+                .replaceAll("\\bpruefe\\b", "prüfe")
+                .replaceAll("\\bPruefe\\b", "Prüfe")
+                .replaceAll("\\bpruefen\\b", "prüfen")
+                .replaceAll("\\bPruefen\\b", "Prüfen")
+                .replaceAll("\\bunterstuetze\\b", "unterstütze")
+                .replaceAll("\\bUnterstuetze\\b", "Unterstütze")
+                .replaceAll("\\bunterstuetzen\\b", "unterstützen")
+                .replaceAll("\\bUnterstuetzen\\b", "Unterstützen")
+                .replaceAll("\\bwaere\\b", "wäre")
+                .replaceAll("\\bWaere\\b", "Wäre")
+                .replaceAll("\\bbenoetige\\b", "benötige")
+                .replaceAll("\\bBenoetige\\b", "Benötige")
+                .replaceAll("\\bNaechstes\\b", "Nächstes")
+                .replaceAll("\\bnaechstes\\b", "nächstes")
+                .replaceAll("\\brueckruf\\b", "rückruf")
+                .replaceAll("\\bRueckruf\\b", "Rückruf")
+                .replaceAll("\\bPasswoerter\\b", "Passwörter")
+                .replaceAll("\\bGespraeche\\b", "Gespräche")
+                .replaceAll("\\boeffnen\\b", "öffnen")
+                .replaceAll("\\bOeffnen\\b", "Öffnen");
     }
 
     public static String trimToLength(String value, int maxLength) {

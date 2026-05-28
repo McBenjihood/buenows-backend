@@ -16,8 +16,8 @@
       welcomeMessage: "Hallo! Wie kann ich dir helfen?",
       placeholder: "Schreib deine Frage...",
       privacyNotice:
-        "Bitte senden Sie keine Passwoerter, Zahlungsdaten, Ausweise oder privaten Dokumente. Gespraeche koennen bis zu 7 Tage gespeichert werden. Der Chatbot kann Fehler machen.",
-      launcherLabel: "Chat oeffnen",
+        "Bitte senden Sie keine Passwörter, Zahlungsdaten, Ausweise oder privaten Dokumente. Gespräche können bis zu 7 Tage gespeichert werden. Der Chatbot kann Fehler machen.",
+      launcherLabel: "Chat öffnen",
       handoffLabel: "Kontakt aufnehmen",
       closeLabel: "Chat schliessen",
       inputLabel: "Nachricht",

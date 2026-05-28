@@ -27,7 +27,7 @@ public class ChatbotService {
     private static final Pattern UNSAFE_PROMISE_PATTERN = Pattern.compile("\\b(we guarantee|we promise|guaranteed results|guaranteed leads|guaranteed customers|wir garantieren|wir versprechen|garantierte kunden|garantierte anfragen|sicher mehr kunden|sicher mehr anfragen)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern LANGUAGE_SWITCH_PATTERN = Pattern.compile("\\b(antworte|antworten|reply|respond|answer)\\b.{0,40}\\b(deutsch|englisch|german|english)\\b", Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern THANK_YOU_INQUIRY_PATTERN = Pattern.compile("\\b(Vielen Dank fuer Ihre Anfrage|Vielen Dank fÃ¼r Ihre Anfrage|Thank you for your inquiry)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern THANK_YOU_INQUIRY_PATTERN = Pattern.compile("\\b(Vielen Dank fuer Ihre Anfrage|Vielen Dank für Ihre Anfrage|Vielen Dank fÃ¼r Ihre Anfrage|Thank you for your inquiry)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern WEAK_QUESTION_PATTERN = Pattern.compile("\\b(Could you|K.nnten)\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern MARKDOWN_LINK_PATTERN = Pattern.compile("\\[[^\\]]+]\\(https?://[^)]+\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern EARLY_HANDOFF_PATTERN = Pattern.compile("\\b(contact form|contact page|project request|Projekt anfragen|Kontaktformular|Kontaktseite|Formular|Anfrageformular|Handoff)\\b|https?://\\S+", Pattern.CASE_INSENSITIVE);
@@ -157,7 +157,7 @@ public class ChatbotService {
             if (missesLanguageLockAcknowledgement(reply, session, language) && replyLooksLikeTemplate(reply) && !replyLooksWrongLanguage(reply, language)) reply = languageLockSentence(language) + "\n\n" + reply;
             else reply = buildLanguageSafeFallback(session, language);
         }
-        return enforceFinalReplySafety(reply);
+        return enforceFinalReplySafety(reply, language);
     }
 
     private List<Map<String, Object>> buildConversationForClassification(ChatSession session, String currentMessage) {
@@ -206,10 +206,10 @@ public class ChatbotService {
         StringBuilder builder = new StringBuilder();
         if (includeLanguageLock) builder.append(languageLockSentence(language)).append("\n\n");
         if ("de".equals(language)) {
-            builder.append("Danke, das ist eine klare Anfrage.\n\nIch kann Ihre Angaben nicht automatisch ins Kontaktformular eintragen oder ans Team senden.\nBitte senden Sie die Anfrage deshalb ueber das Kontaktformular:\n").append(target).append("\n\nSobald die Anfrage gesendet wurde, werden wir sie bearbeiten und anschliessend ueber die angegebene Kontaktmoeglichkeit Kontakt aufnehmen.\n\nFuer das Formular koennen Sie diese Angaben uebernehmen:\n\n");
+            builder.append("Danke, das ist eine klare Anfrage.\n\nIch kann Ihre Angaben nicht automatisch ins Kontaktformular eintragen oder ans Team senden.\nBitte senden Sie die Anfrage deshalb über das Kontaktformular:\n").append(target).append("\n\nSobald die Anfrage gesendet wurde, werden wir sie bearbeiten und anschliessend über die angegebene Kontaktmöglichkeit Kontakt aufnehmen.\n\nFür das Formular können Sie diese Angaben übernehmen:\n\n");
             if (!contact.email().isBlank()) builder.append("E-Mail\n").append(contact.email()).append("\n\n");
             if (!contact.phone().isBlank()) builder.append("Telefon\n").append(contact.phone()).append("\n\n");
-            builder.append("Gewuenschte Loesung\n").append(cleanLeadField(desiredSolution, 160)).append("\n\nNachricht\n").append(cleanLeadSummary(leadSummary));
+            builder.append("Gewünschte Lösung\n").append(cleanLeadField(desiredSolution, 160)).append("\n\nNachricht\n").append(cleanLeadSummary(leadSummary));
         } else {
             builder.append("Thank you, this is a clear request.\n\nI cannot automatically submit your details through the contact form or send them to the team.\nPlease submit the request via the contact form:\n").append(target).append("\n\nOnce the request has been submitted, we will review it and then contact you through the provided contact details.\n\nYou can use these details for the form:\n\n");
             if (!contact.email().isBlank()) builder.append("Email\n").append(contact.email()).append("\n\n");
@@ -226,7 +226,7 @@ public class ChatbotService {
         if (metadata.readyForHandoff() && !replyLooksLikeTemplate(reply)) return "The metadata says handoff is ready but the reply does not use the exact contact-form template.";
         if (contactExtractor.conversationHasContactInfo(session.messages()) && asksForContactOption(reply)) return "The user already provided contact information. Generate the contact-form template if the project is concrete enough.";
         if (lastMessageHasContactAndLanguageSwitch(session) && !replyLooksLikeTemplate(reply)) return "The user asked to switch language and provided contact information. Keep the fixed language and generate the template if context is clear.";
-        if (BAD_FILLER_PATTERN.matcher(reply == null ? "" : reply).find() || THANK_YOU_INQUIRY_PATTERN.matcher(reply == null ? "" : reply).find() || WEAK_QUESTION_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses filler or weak customer-service phrasing. Ask directly without 'Could you' or 'Koennten Sie'.";
+        if (BAD_FILLER_PATTERN.matcher(reply == null ? "" : reply).find() || THANK_YOU_INQUIRY_PATTERN.matcher(reply == null ? "" : reply).find() || WEAK_QUESTION_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply uses filler or weak customer-service phrasing. Ask directly without 'Could you' or 'Könnten Sie'.";
         if (UNSAFE_PROMISE_PATTERN.matcher(reply == null ? "" : reply).find()) return "The reply makes a promise or guarantee.";
         return null;
     }
@@ -267,7 +267,7 @@ public class ChatbotService {
     }
     private boolean isLanguageSwitchRequest(String value) { return LANGUAGE_SWITCH_PATTERN.matcher(value == null ? "" : value).find(); }
     private String languageLockSentence(String language) { return "de".equals(language) ? "Die Sitzungssprache bleibt Deutsch." : "The session language stays fixed in English."; }
-    private String buildLanguageSafeFallback(ChatSession session, String language) { String question = getLastAssistantQuestion(session); return !question.isBlank() ? question : ("de".equals(language) ? "Welche Information ist fuer die Anfrage als Naechstes am wichtigsten?" : "What information is most important for the request next?"); }
+    private String buildLanguageSafeFallback(ChatSession session, String language) { String question = getLastAssistantQuestion(session); return !question.isBlank() ? question : ("de".equals(language) ? "Welche Information ist für die Anfrage als Nächstes am wichtigsten?" : "What information is most important for the request next?"); }
     private String buildProjectFollowUpFallback(ChatSession session, String language) {
         String text = conversationText(session).toLowerCase(Locale.ROOT);
         if (containsAny(text, "rechnung", "rechnungen", "invoice", "invoicing")) {
@@ -287,7 +287,14 @@ public class ChatbotService {
         }
         return buildLanguageSafeFallback(session, language);
     }
-    private String enforceFinalReplySafety(String reply) { return ChatbotText.cleanReply(reply).replaceAll("(?i)\\bwe guarantee\\b", "we can discuss").replaceAll("(?i)\\bguaranteed\\b", "planned").replaceAll("(?i)\\bwir garantieren\\b", "wir koennen pruefen").trim(); }
+    private String enforceFinalReplySafety(String reply, String language) {
+        String cleaned = ChatbotText.cleanReply(reply)
+                .replaceAll("(?i)\\bwe guarantee\\b", "we can discuss")
+                .replaceAll("(?i)\\bguaranteed\\b", "planned")
+                .replaceAll("(?i)\\bwir garantieren\\b", "wir können prüfen")
+                .trim();
+        return "de".equals(language) ? ChatbotText.normalizeGermanOutput(cleaned) : cleaned;
+    }
     private String inferDesiredSolution(ChatSession session, String reply, String language) {
         String text = (conversationText(session) + "\n" + (reply == null ? "" : reply)).toLowerCase(Locale.ROOT);
         if (containsAny(text, "invoice", "invoicing", "rechnung", "rechnungen", "subscription", "abo")) return "de".equals(language) ? "Rechnungsautomatisierung per E-Mail" : "Invoice automation with email delivery";
@@ -299,7 +306,7 @@ public class ChatbotService {
         if (containsAny(text, "backend", "dashboard", "admin")) return "de".equals(language) ? "Backend-System" : "Backend system";
         if (containsAny(text, "website", "webseite", "site", "redesign")) return "Website";
         if (containsAny(text, "automation", "automatisierung", "automate")) return "de".equals(language) ? "Prozessautomatisierung" : "Process automation";
-        return "de".equals(language) ? "Digitale Loesung" : "Digital solution";
+        return "de".equals(language) ? "Digitale Lösung" : "Digital solution";
     }
     private String inferLeadSummary(ChatSession session, String language) {
         StringBuilder summary = new StringBuilder();

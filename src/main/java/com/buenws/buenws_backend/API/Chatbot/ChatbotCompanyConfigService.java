@@ -58,7 +58,7 @@ public class ChatbotCompanyConfigService {
         boolean english = "en".equals(selectedLanguage);
         Map<String, Object> theme = objectToMap(config.theme());
         theme.putAll(objectToMap(localized.path("theme")));
-        theme.put("launcherLabel", text(localized, "launcherLabel", english ? "Open chat" : text(config.theme(), "launcherLabel", "Chat oeffnen")));
+        theme.put("launcherLabel", text(localized, "launcherLabel", english ? "Open chat" : text(config.theme(), "launcherLabel", "Chat öffnen")));
         Map<String, Object> handoff = objectToMap(config.handoff());
         handoff.putAll(objectToMap(localized.path("handoff")));
         handoff.put("label", text(localized, "handoffLabel", english ? "Request project" : text(config.handoff(), "label", "Kontakt aufnehmen")));
