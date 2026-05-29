@@ -92,6 +92,7 @@ body.demo-body {
 .bws-close-btn:focus-visible,
 .bws-send-btn:focus-visible,
 .bws-new-session-btn:focus-visible,
+.bws-open-contact-btn:focus-visible,
 .bws-chat-input:focus-visible,
 .bws-contact-link:focus-visible {
   outline: 3px solid rgba(66, 184, 131, 0.28);
@@ -261,8 +262,16 @@ body.demo-body {
   line-height: 1.45;
 }
 
-.bws-new-session-btn {
+.bws-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bws-new-session-btn,
+.bws-open-contact-btn {
   min-height: 34px;
+  margin: 0;
   padding: 0 12px;
   color: #101410;
   background: var(--bws-primary);
@@ -274,7 +283,8 @@ body.demo-body {
   font-weight: 800;
 }
 
-.bws-new-session-btn:hover {
+.bws-new-session-btn:hover,
+.bws-open-contact-btn:hover {
   background: var(--bws-primary-strong);
 }
 

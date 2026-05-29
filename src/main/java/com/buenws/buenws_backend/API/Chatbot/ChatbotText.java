@@ -28,7 +28,8 @@ public final class ChatbotText {
                     Map.entry("openAiInvalid", "Der OpenAI API Key konnte nicht verwendet werden. Bitte prüfe die Server-Konfiguration."),
                     Map.entry("chatUnavailable", "Der Chatbot ist gerade nicht erreichbar. Bitte versuche es später erneut."),
                     Map.entry("rejected", "Dabei kann ich hier nicht helfen. Ich unterstütze nur bei Fragen und Projektanfragen zu {companyName} und den angebotenen digitalen Lösungen."),
-                    Map.entry("contactMissing", "Wie k\u00f6nnen wir Sie am besten kontaktieren?")
+                    Map.entry("contactMissing", "Wie lautet Ihre E-Mail-Adresse?"),
+                    Map.entry("sensitiveData", "Bitte senden Sie hier keine Passwörter, Zahlungsdaten, Ausweise oder privaten Dokumente. Schreiben Sie die Anfrage bitte ohne diese Daten weiter.")
             ),
             "en", Map.ofEntries(
                     Map.entry("tooManyMessages", "Too many messages. Please wait briefly and try again."),
@@ -43,7 +44,8 @@ public final class ChatbotText {
                     Map.entry("openAiInvalid", "The OpenAI API key could not be used. Please check the server configuration."),
                     Map.entry("chatUnavailable", "The chatbot is currently unavailable. Please try again later."),
                     Map.entry("rejected", "I cannot help with that here. I only support questions and project inquiries about {companyName} and the offered digital solutions."),
-                    Map.entry("contactMissing", "What is the best way to contact you?")
+                    Map.entry("contactMissing", "What is your email address?"),
+                    Map.entry("sensitiveData", "Please do not send passwords, payment data, ID documents or private documents here. Continue with your request without these details.")
             )
     );
 

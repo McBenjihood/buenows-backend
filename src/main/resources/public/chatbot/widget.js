@@ -32,6 +32,7 @@
       retryPrefix: "Bitte versuchen Sie es in {seconds} erneut.",
       sessionEndedMessage:
         "Diese Chat-Session ist abgeschlossen. Für eine neue Anfrage starten Sie bitte einen neuen Chat.",
+      openContactFormLabel: "Kontaktformular öffnen",
       newSessionLabel: "Neuen Chat starten",
       newSessionError: "Neue Session konnte nicht erstellt werden."
     },
@@ -56,12 +57,15 @@
       retryPrefix: "Please try again in {seconds}.",
       sessionEndedMessage:
         "This chat session is complete. Please start a new chat for another request.",
+      openContactFormLabel: "Open contact form",
       newSessionLabel: "Start new chat",
       newSessionError: "A new session could not be created."
     }
   };
   const uiText = UI_TEXT[uiLanguage];
-  const storageKey = `bws_chatbot_session_${hashString(`${apiBase}:${widgetLanguage || "default"}`)}`;
+  const sessionStorageKeyPrefix = "bws_chatbot_session_";
+  const storageKey = `${sessionStorageKeyPrefix}${hashString(`${apiBase}:${widgetLanguage || "default"}`)}`;
+  const contactDraftStorageKey = "bws_contact_form_draft";
 
   let root = document.getElementById(rootId);
 
@@ -97,7 +101,9 @@
 
   let isOpen = false;
   let isLoading = false;
+  let isStartingSession = false;
   let isConversationEnded = false;
+  let activeSessionId = "";
   let config = fallbackConfig;
   let elements = null;
 
@@ -298,12 +304,16 @@
   }
 
   function bindEvents() {
-    listen(elements.launcher, "click", () => toggleChat());
-    listen(elements.closeButton, "click", () => toggleChat(false));
+    listen(elements.launcher, "click", () => {
+      void toggleChat();
+    });
+    listen(elements.closeButton, "click", () => {
+      void toggleChat(false);
+    });
 
     listen(document, "keydown", (event) => {
       if (event.key === "Escape" && isOpen) {
-        toggleChat(false);
+        void toggleChat(false);
       }
     });
 
@@ -312,7 +322,7 @@
 
       const text = elements.input.value.trim();
 
-      if (!text || isLoading) {
+      if (!text || isLoading || isStartingSession) {
         return;
       }
 
@@ -327,7 +337,7 @@
         typing.remove();
         addMessage(result.reply, "bot");
         if (result.sessionEnded) {
-          showSessionEndedNotice();
+          showSessionEndedNotice(result.handoffDraft);
         }
       } catch (error) {
         typing.remove();
@@ -340,24 +350,55 @@
   }
 
   function getSessionId() {
+    if (activeSessionId) {
+      return activeSessionId;
+    }
+
     try {
-      return window.localStorage.getItem(storageKey);
+      return window.localStorage.getItem(storageKey) || "";
     } catch {
       return "";
     }
   }
 
   function setSessionId(sessionId) {
+    activeSessionId = sessionId || "";
+
+    if (!activeSessionId) {
+      clearSessionId();
+      return;
+    }
+
     try {
-      window.localStorage.setItem(storageKey, sessionId);
+      window.localStorage.setItem(storageKey, activeSessionId);
     } catch {
       // Chat still works without persistent browser storage.
     }
   }
 
   function clearSessionId() {
+    activeSessionId = "";
+
     try {
       window.localStorage.removeItem(storageKey);
+    } catch {
+      // Chat still works without persistent browser storage.
+    }
+  }
+
+  function clearStoredSessionIds() {
+    activeSessionId = "";
+
+    try {
+      window.localStorage.removeItem(storageKey);
+
+      for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+        const key = window.localStorage.key(index);
+
+        if (key && key.startsWith(sessionStorageKeyPrefix)) {
+          window.localStorage.removeItem(key);
+        }
+      }
     } catch {
       // Chat still works without persistent browser storage.
     }
@@ -426,11 +467,11 @@
 
   function setLoading(value) {
     isLoading = value;
-    elements.input.disabled = value || isConversationEnded;
-    elements.sendButton.disabled = value || isConversationEnded;
+    elements.input.disabled = value || isConversationEnded || isStartingSession;
+    elements.sendButton.disabled = value || isConversationEnded || isStartingSession;
   }
 
-  function toggleChat(nextState) {
+  async function toggleChat(nextState) {
     isOpen = typeof nextState === "boolean" ? nextState : !isOpen;
 
     elements.panel.classList.toggle("is-open", isOpen);
@@ -438,12 +479,12 @@
     elements.launcher.setAttribute("aria-expanded", String(isOpen));
 
     if (isOpen) {
-      elements.input.focus();
-
       if (!elements.messages.dataset.started) {
-        addMessage(config.welcomeMessage, "bot");
-        elements.messages.dataset.started = "true";
+        await startFreshConversationWithGreeting();
+        return;
       }
+
+      elements.input.focus();
     }
   }
 
@@ -509,19 +550,33 @@
 
     return {
       reply: data.reply || uiText.fallbackReply,
-      sessionEnded: Boolean(data.sessionEnded)
+      sessionEnded: Boolean(data.sessionEnded),
+      handoffDraft: normalizeHandoffDraft(data.handoffDraft)
     };
   }
 
-  function showSessionEndedNotice() {
+  function showSessionEndedNotice(handoffDraft) {
     isConversationEnded = true;
     setLoading(false);
 
     const notice = document.createElement("div");
     notice.className = "bws-session-ended";
 
-    const message = document.createElement("p");
-    message.textContent = uiText.sessionEndedMessage;
+    const actions = document.createElement("div");
+    actions.className = "bws-session-actions";
+
+    if (handoffDraft) {
+      const contactButton = document.createElement("button");
+      contactButton.className = "bws-open-contact-btn";
+      contactButton.type = "button";
+      contactButton.textContent = uiText.openContactFormLabel;
+      contactButton.addEventListener("click", () => openContactForm(handoffDraft));
+      actions.appendChild(contactButton);
+    } else {
+      const message = document.createElement("p");
+      message.textContent = uiText.sessionEndedMessage;
+      notice.appendChild(message);
+    }
 
     const button = document.createElement("button");
     button.className = "bws-new-session-btn";
@@ -529,17 +584,19 @@
     button.textContent = uiText.newSessionLabel;
     button.addEventListener("click", startNewSession);
 
-    notice.append(message, button);
+    actions.appendChild(button);
+    notice.appendChild(actions);
     elements.messages.appendChild(notice);
     scrollToBottom();
   }
 
-  async function startNewSession() {
-    if (isLoading) {
+  async function startFreshConversationWithGreeting() {
+    if (isStartingSession) {
       return;
     }
 
-    clearSessionId();
+    isStartingSession = true;
+    clearStoredSessionIds();
     isConversationEnded = false;
     elements.messages.innerHTML = "";
     elements.messages.dataset.started = "";
@@ -550,11 +607,75 @@
       addMessage(config.welcomeMessage, "bot");
       elements.messages.dataset.started = "true";
     } catch (error) {
+      clearSessionId();
       addMessage(getDisplayErrorMessage(error) || uiText.newSessionError, "bot");
     } finally {
+      isStartingSession = false;
       setLoading(false);
-      elements.input.focus();
+
+      if (isOpen) {
+        elements.input.focus();
+      }
     }
+  }
+
+  function normalizeHandoffDraft(value) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const draft = {
+      email: cleanDraftText(value.email, 254),
+      title: cleanDraftText(value.title, 100),
+      message: cleanDraftText(value.message, 2000),
+      contactUrl: cleanDraftText(value.contactUrl || config.handoff.url || "/contact", 500)
+    };
+
+    if (!draft.email && !draft.title && !draft.message) {
+      return null;
+    }
+
+    return draft;
+  }
+
+  function cleanDraftText(value, maxLength) {
+    return String(value || "")
+      .replace(/\u0000/g, "")
+      .trim()
+      .slice(0, maxLength);
+  }
+
+  function openContactForm(handoffDraft) {
+    const draft = normalizeHandoffDraft(handoffDraft);
+
+    if (draft) {
+      storeContactDraft(draft);
+    }
+
+    window.location.assign(draft?.contactUrl || config.handoff.url || "/contact");
+  }
+
+  function storeContactDraft(draft) {
+    try {
+      window.sessionStorage.setItem(
+        contactDraftStorageKey,
+        JSON.stringify({
+          ...draft,
+          language: uiLanguage,
+          createdAt: new Date().toISOString()
+        })
+      );
+    } catch {
+      // The contact page still opens if browser storage is unavailable.
+    }
+  }
+
+  async function startNewSession() {
+    if (isLoading || isStartingSession) {
+      return;
+    }
+
+    await startFreshConversationWithGreeting();
   }
 
   async function parseJsonResponse(response) {

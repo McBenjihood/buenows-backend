@@ -62,6 +62,7 @@ public class ChatbotCompanyConfigService {
         Map<String, Object> handoff = objectToMap(config.handoff());
         handoff.putAll(objectToMap(localized.path("handoff")));
         handoff.put("label", text(localized, "handoffLabel", english ? "Request project" : text(config.handoff(), "label", "Kontakt aufnehmen")));
+        handoff.put("url", properties.frontendContactUrl());
         return new ConfigResponse(
                 text(localized, "botName", config.botName()),
                 text(localized, "companyName", config.companyName()),

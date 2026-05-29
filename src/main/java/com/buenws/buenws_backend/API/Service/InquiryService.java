@@ -4,6 +4,7 @@ import com.buenws.buenws_backend.API.Entity.InquiryEntity;
 import com.buenws.buenws_backend.API.Exception.Custom.InvalidInquiryException;
 import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.InquiryRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -42,9 +43,10 @@ public class InquiryService {
     }
 
     @Transactional(readOnly = true)
-    public Records.ApiResponse<List<Records.InquiryResponse>> getAllInquiries(int page, int size) {
+    public Records.ApiResponse<Records.PageResponse<Records.InquiryResponse>> getAllInquiries(int page, int size) {
         PageRequest pageRequest = PageRequest.of(safePage(page), safeSize(size), Sort.by(Sort.Direction.DESC, "created_at"));
-        List<Records.InquiryResponse> inquiries = inquiryRepository.findAll(pageRequest).stream()
+        Page<InquiryEntity> inquiryPage = inquiryRepository.findAll(pageRequest);
+        List<Records.InquiryResponse> inquiries = inquiryPage.stream()
                 .map(inquiry -> new Records.InquiryResponse(
                         inquiry.getId(),
                         inquiry.getEmail(),
@@ -54,7 +56,12 @@ public class InquiryService {
                 ))
                 .toList();
 
-        return Records.ApiResponse.success("Inquiries loaded successfully.", inquiries);
+        return Records.ApiResponse.success("Inquiries loaded successfully.", new Records.PageResponse<>(
+                inquiries,
+                inquiryPage.getNumber(),
+                inquiryPage.getSize(),
+                inquiryPage.hasNext()
+        ));
     }
 
     @Transactional

@@ -33,7 +33,7 @@ public class ChatbotAdminController {
     }
 
     @GetMapping("/conversations")
-    public ResponseEntity<Records.ApiResponse<List<Records.AdminChatbotConversationSummaryResponse>>> getConversations(
+    public ResponseEntity<Records.ApiResponse<Records.PageResponse<Records.AdminChatbotConversationSummaryResponse>>> getConversations(
             @RequestParam(value = "companyKey", required = false) String companyKey,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "50") int size,

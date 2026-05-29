@@ -72,7 +72,12 @@ public class OpenAiResponsesClient {
         body.put("model", model);
         body.put("input", input);
         body.put("text", Map.of("format", responseFormat));
-        body.put("temperature", temperature);
+        if (supportsTemperature(model)) {
+            body.put("temperature", temperature);
+        }
+        if (supportsReasoning(model)) {
+            body.put("reasoning", Map.of("effort", properties.openAiReasoningEffort()));
+        }
         body.put("max_output_tokens", maxOutputTokens);
         body.put("store", false);
         for (int attempt = 1; attempt <= 2; attempt += 1) {
@@ -118,7 +123,17 @@ public class OpenAiResponsesClient {
     }
 
     private AssistantMetadata assistantMetadata(JsonNode parsed) {
-        return new AssistantMetadata(ChatbotText.cleanReply(parsed.path("reply").asText("")), parsed.path("readyForHandoff").asBoolean(false), ChatbotText.cleanInlineText(parsed.path("contactEmail").asText(""), 160), ChatbotText.cleanInlineText(parsed.path("contactPhone").asText(""), 80), ChatbotText.cleanInlineText(parsed.path("desiredSolution").asText(""), 160), ChatbotText.cleanText(parsed.path("leadSummary").asText(""), 900));
+        return new AssistantMetadata(
+                ChatbotText.cleanReply(parsed.path("reply").asText("")),
+                parsed.path("readyForHandoff").asBoolean(false),
+                ChatbotText.cleanInlineText(parsed.path("contactEmail").asText(""), 160),
+                ChatbotText.cleanInlineText(parsed.path("desiredSolution").asText(""), 160),
+                ChatbotText.cleanText(parsed.path("leadSummary").asText(""), 900),
+                ChatbotText.cleanInlineText(parsed.path("nextAction").asText(""), 80),
+                ChatbotText.cleanInlineText(parsed.path("missingField").asText(""), 80),
+                parsed.path("projectContextComplete").asBoolean(false),
+                parsed.path("contactRequired").asBoolean(false)
+        );
     }
 
     private Map<String, Object> classificationFormat() {
@@ -134,14 +149,27 @@ public class OpenAiResponsesClient {
 
     private Map<String, Object> chatFormat() {
         return Map.of("type", "json_schema", "name", "customer_service_reply", "strict", true, "schema", Map.of(
-                "type", "object", "additionalProperties", false, "required", List.of("reply", "readyForHandoff", "contactEmail", "contactPhone", "desiredSolution", "leadSummary"),
+                "type", "object", "additionalProperties", false, "required", List.of(
+                        "reply",
+                        "readyForHandoff",
+                        "contactEmail",
+                        "desiredSolution",
+                        "leadSummary",
+                        "nextAction",
+                        "missingField",
+                        "projectContextComplete",
+                        "contactRequired"
+                ),
                 "properties", Map.of(
                         "reply", Map.of("type", "string"),
                         "readyForHandoff", Map.of("type", "boolean"),
                         "contactEmail", Map.of("type", "string"),
-                        "contactPhone", Map.of("type", "string"),
                         "desiredSolution", Map.of("type", "string"),
-                        "leadSummary", Map.of("type", "string")
+                        "leadSummary", Map.of("type", "string"),
+                        "nextAction", Map.of("type", "string", "enum", List.of("answer", "ask_project_detail", "ask_email", "handoff", "human_contact", "decline")),
+                        "missingField", Map.of("type", "string", "enum", List.of("none", "project_context", "current_process", "website_status", "chatbot_purpose", "ecommerce_detail", "timeframe", "email")),
+                        "projectContextComplete", Map.of("type", "boolean"),
+                        "contactRequired", Map.of("type", "boolean")
                 )));
     }
 
@@ -150,6 +178,14 @@ public class OpenAiResponsesClient {
         try { return objectMapper.writeValueAsString(value); } catch (IOException exception) { throw new IllegalStateException("Could not serialize OpenAI payload.", exception); }
     }
     private boolean isRetryable(int status) { return status == 408 || status == 409 || status == 429 || status >= 500; }
+    private boolean supportsTemperature(String model) {
+        String normalized = model == null ? "" : model.toLowerCase(Locale.ROOT);
+        return !supportsReasoning(normalized);
+    }
+    private boolean supportsReasoning(String model) {
+        String normalized = model == null ? "" : model.toLowerCase(Locale.ROOT);
+        return normalized.startsWith("gpt-5") || normalized.startsWith("o");
+    }
 
     public static class OpenAiClientException extends RuntimeException {
         private final int status;

@@ -8,6 +8,7 @@ import com.buenws.buenws_backend.API.Exception.Custom.InvalidInquiryException;
 import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.ChatbotConversationRepository;
 import com.buenws.buenws_backend.API.Repository.Repositories.ChatbotMessageRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -70,19 +71,25 @@ public class ChatbotConversationHistoryService {
     }
 
     @Transactional(readOnly = true)
-    public Records.ApiResponse<List<Records.AdminChatbotConversationSummaryResponse>> getConversationSummaries(String requestedCompanyKey, int page, int size) {
+    public Records.ApiResponse<Records.PageResponse<Records.AdminChatbotConversationSummaryResponse>> getConversationSummaries(String requestedCompanyKey, int page, int size) {
         ChatbotCompanyConfig config = companyConfigService.loadConfig();
         String companyKey = normalizeCompanyKey(requestedCompanyKey, config.companyKey());
         Instant cutoff = Instant.now().minus(properties.historyRetentionDays(), ChronoUnit.DAYS);
         PageRequest pageRequest = PageRequest.of(safePage(page), safeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        List<Records.AdminChatbotConversationSummaryResponse> conversations = conversationRepository
-                .findByCompanyKeyAndCreatedAtAfter(companyKey, cutoff, pageRequest)
+        Page<ChatbotConversationEntity> conversationPage = conversationRepository.findByCompanyKeyAndCreatedAtAfter(companyKey, cutoff, pageRequest);
+        List<Records.AdminChatbotConversationSummaryResponse> conversations = conversationPage
+                .getContent()
                 .stream()
                 .map(this::toSummary)
                 .toList();
 
-        return Records.ApiResponse.success("Chatbot conversations loaded successfully.", conversations);
+        return Records.ApiResponse.success("Chatbot conversations loaded successfully.", new Records.PageResponse<>(
+                conversations,
+                conversationPage.getNumber(),
+                conversationPage.getSize(),
+                conversationPage.hasNext()
+        ));
     }
 
     @Transactional(readOnly = true)
@@ -159,7 +166,7 @@ public class ChatbotConversationHistoryService {
 
     private ChatbotConversationEntity ensureConversation(ChatbotCompanyConfig config, ChatSession session) {
         UUID sessionId = UUID.fromString(session.id());
-        return conversationRepository.findBySessionId(sessionId).orElseGet(() -> {
+        return conversationRepository.findBySessionIdForUpdate(sessionId).orElseGet(() -> {
             Instant now = Instant.now();
             ChatbotConversationEntity conversation = new ChatbotConversationEntity();
             conversation.setSessionId(sessionId);

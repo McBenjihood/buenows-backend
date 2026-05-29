@@ -10,7 +10,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -35,7 +34,7 @@ public class AdminController {
     }
 
     @GetMapping("/inquiries")
-    public ResponseEntity<Records.ApiResponse<List<Records.InquiryResponse>>> getAllInquiries(
+    public ResponseEntity<Records.ApiResponse<Records.PageResponse<Records.InquiryResponse>>> getAllInquiries(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "50") int size,
             HttpServletRequest request) {
@@ -52,7 +51,7 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<Records.ApiResponse<List<Records.AdminUserResponse>>> getAllUsers(
+    public ResponseEntity<Records.ApiResponse<Records.PageResponse<Records.AdminUserResponse>>> getAllUsers(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "50") int size,
             HttpServletRequest request) {

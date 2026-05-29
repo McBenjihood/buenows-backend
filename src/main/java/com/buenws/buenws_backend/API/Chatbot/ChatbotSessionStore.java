@@ -8,11 +8,13 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @Service
 public class ChatbotSessionStore {
     private final ChatbotProperties properties;
     private final Map<String, ChatSession> sessions = new ConcurrentHashMap<>();
+    private final Map<String, Object> sessionLocks = new ConcurrentHashMap<>();
 
     public ChatbotSessionStore(ChatbotProperties properties) {
         this.properties = properties;
@@ -42,7 +44,17 @@ public class ChatbotSessionStore {
     }
 
     public void delete(String sessionId) {
-        if (sessionId != null) sessions.remove(sessionId);
+        if (sessionId != null) {
+            sessions.remove(sessionId);
+            sessionLocks.remove(sessionId);
+        }
+    }
+
+    public <T> T withSessionLock(String sessionId, Supplier<T> action) {
+        Object lock = sessionLocks.computeIfAbsent(sessionId, ignored -> new Object());
+        synchronized (lock) {
+            return action.get();
+        }
     }
 
     public int activeSessions() {
@@ -62,7 +74,10 @@ public class ChatbotSessionStore {
     @Scheduled(fixedDelayString = "PT15M")
     public void cleanupExpiredSessions() {
         for (ChatSession session : sessions.values()) {
-            if (isExpired(session)) sessions.remove(session.id());
+            if (isExpired(session)) {
+                sessions.remove(session.id());
+                sessionLocks.remove(session.id());
+            }
         }
     }
 

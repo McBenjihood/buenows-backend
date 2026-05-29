@@ -16,21 +16,43 @@ public final class ChatbotModels {
     public record SessionRequest(String language) {}
     public record SessionResponse(String sessionId, String language) {}
     public record ChatRequest(String sessionId, String language, @Size(max = 4000) String message) {}
-    public record ChatResponse(String reply, String sessionId, String language, boolean sessionEnded) {}
+    public record ChatResponse(String reply, String sessionId, String language, boolean sessionEnded, HandoffDraft handoffDraft) {
+        public ChatResponse(String reply, String sessionId, String language, boolean sessionEnded) {
+            this(reply, sessionId, language, sessionEnded, null);
+        }
+    }
+    public record HandoffDraft(String email, String title, String message, String contactUrl) {}
     public record HealthResponse(String status, String service, String time, Map<String, Object> details) {}
     public record ErrorResponse(String error, String code, Integer retryAfter) {
         public ErrorResponse(String error) { this(error, null, null); }
     }
     public enum ClassificationDecision { ANSWER, CLARIFY, REJECT }
     public record Classification(ClassificationDecision decision, String category, double confidence, String reason) {}
-    public record AssistantMetadata(String reply, boolean readyForHandoff, String contactEmail, String contactPhone,
-                                    String desiredSolution, String leadSummary) {
+    public record AssistantMetadata(String reply, boolean readyForHandoff, String contactEmail,
+                                    String desiredSolution, String leadSummary, String nextAction,
+                                    String missingField, boolean projectContextComplete, boolean contactRequired) {
+        public AssistantMetadata(String reply, boolean readyForHandoff, String contactEmail,
+                                 String desiredSolution, String leadSummary) {
+            this(reply, readyForHandoff, contactEmail, desiredSolution, leadSummary, "", "", false, false);
+        }
+
+        public AssistantMetadata(String reply, boolean readyForHandoff, String contactEmail, String ignoredContactPhone,
+                                 String desiredSolution, String leadSummary) {
+            this(reply, readyForHandoff, contactEmail, desiredSolution, leadSummary, "", "", false, false);
+        }
+
+        public AssistantMetadata(String reply, boolean readyForHandoff, String contactEmail, String ignoredContactPhone,
+                                 String desiredSolution, String leadSummary, String nextAction,
+                                 String missingField, boolean projectContextComplete, boolean contactRequired) {
+            this(reply, readyForHandoff, contactEmail, desiredSolution, leadSummary, nextAction, missingField, projectContextComplete, contactRequired);
+        }
+
         public static AssistantMetadata empty(String reply) {
-            return new AssistantMetadata(reply, false, "", "", "", "");
+            return new AssistantMetadata(reply, false, "", "", "", "", "", false, false);
         }
     }
     public record ContactInfo(String email, String phone) {
-        public boolean hasAny() { return !email.isBlank() || !phone.isBlank(); }
+        public boolean hasEmail() { return !email.isBlank(); }
     }
     public record ConversationMessage(String role, String content) {}
 

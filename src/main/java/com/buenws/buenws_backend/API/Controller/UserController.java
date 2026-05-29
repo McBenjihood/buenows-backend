@@ -22,10 +22,12 @@ public class UserController {
 
     private final UserService userService;
     private final RateLimitService rateLimitService;
+    private final SecureCookieUtil secureCookieUtil;
 
-    public UserController(UserService userService, RateLimitService rateLimitService) {
+    public UserController(UserService userService, RateLimitService rateLimitService, SecureCookieUtil secureCookieUtil) {
         this.userService = userService;
         this.rateLimitService = rateLimitService;
+        this.secureCookieUtil = secureCookieUtil;
     }
 
     //OTP Endpoints
@@ -102,7 +104,7 @@ public class UserController {
         Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
                 userService.RegisterUserWithCredentials(credentialsSubmitRequest);
 
-        SecureCookieUtil.addAuthCookies(response, authResponse.data());
+        secureCookieUtil.addAuthCookies(response, authResponse.data());
 
         return ResponseEntity.ok(authResponse);
     }
@@ -118,7 +120,7 @@ public class UserController {
         Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
                 userService.LoginUserWithCredentials(credentialsSubmitRequest);
 
-        SecureCookieUtil.addAuthCookies(response, authResponse.data());
+        secureCookieUtil.addAuthCookies(response, authResponse.data());
 
         return ResponseEntity.ok(authResponse);
     }
@@ -130,12 +132,12 @@ public class UserController {
     ) {
         rateLimitService.checkBucket("auth/refresh:" + RequestUtil.getClientIp(request), 5);
 
-        String refreshToken = SecureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
+        String refreshToken = secureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
 
         Records.ApiResponse<Records.SuccessfulAuthResponse> authResponse =
                 userService.RefreshToken(refreshToken);
 
-        SecureCookieUtil.addAuthCookies(response, authResponse.data());
+        secureCookieUtil.addAuthCookies(response, authResponse.data());
 
         return ResponseEntity.ok(authResponse);
     }
@@ -147,11 +149,11 @@ public class UserController {
     ) {
         rateLimitService.checkBucket("auth/logout:" + RequestUtil.getClientIp(request), 1);
 
-        String refreshToken = SecureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
+        String refreshToken = secureCookieUtil.getTokenFromCookie(request, TokenService.REFRESH_TOKEN_COOKIE);
 
         Records.ApiResponse<Void> logoutResponse = userService.Logout(refreshToken);
 
-        SecureCookieUtil.clearAuthCookies(response);
+        secureCookieUtil.clearAuthCookies(response);
 
         return ResponseEntity.ok(logoutResponse);
     }

@@ -1,6 +1,7 @@
 package com.buenws.buenws_backend.API.Records;
 
 import jakarta.validation.constraints.*;
+import java.util.List;
 import java.util.UUID;
 
 public class Records
@@ -42,6 +43,12 @@ public class Records
     ){}
     public record ErrorResponse(
             String errorCode
+    ){}
+    public record PageResponse<T>(
+            List<T> items,
+            int page,
+            int size,
+            boolean has_next
     ){}
     public record VerifyOTPResponse(
             UUID verified_token

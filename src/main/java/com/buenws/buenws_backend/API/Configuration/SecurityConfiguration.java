@@ -31,6 +31,7 @@ import java.util.List;
 public class SecurityConfiguration {
 
     private final BearerTokenAuthFilter bearerTokenAuthFilter;
+    private final SecurityCookieProperties cookieProperties;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
@@ -38,8 +39,9 @@ public class SecurityConfiguration {
     @Value("${app.security.require-https:false}")
     private boolean requireHttps;
 
-    public SecurityConfiguration(BearerTokenAuthFilter bearerTokenAuthFilter) {
+    public SecurityConfiguration(BearerTokenAuthFilter bearerTokenAuthFilter, SecurityCookieProperties cookieProperties) {
         this.bearerTokenAuthFilter = bearerTokenAuthFilter;
+        this.cookieProperties = cookieProperties;
     }
 
     @Bean
@@ -47,7 +49,7 @@ public class SecurityConfiguration {
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfTokenRepository.setCookiePath("/");
         csrfTokenRepository.setCookieCustomizer(cookie -> cookie
-                .secure(true)
+                .secure(cookieProperties.secure())
                 .sameSite("Lax")
         );
 

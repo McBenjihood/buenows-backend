@@ -14,6 +14,7 @@ import com.buenws.buenws_backend.Util.CryptographyUtil;
 import com.buenws.buenws_backend.Util.TimeUtil;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -269,13 +270,19 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Records.ApiResponse<List<Records.AdminUserResponse>> getAllUsersForAdmin(int page, int size) {
+    public Records.ApiResponse<Records.PageResponse<Records.AdminUserResponse>> getAllUsersForAdmin(int page, int size) {
         PageRequest pageRequest = PageRequest.of(safePage(page), safeSize(size), Sort.by(Sort.Direction.DESC, "created_at"));
-        List<Records.AdminUserResponse> users = userRepository.findAll(pageRequest).stream()
+        Page<UserEntity> userPage = userRepository.findAll(pageRequest);
+        List<Records.AdminUserResponse> users = userPage.stream()
                 .map(this::mapAdminUser)
                 .toList();
 
-        return Records.ApiResponse.success("Users loaded successfully.", users);
+        return Records.ApiResponse.success("Users loaded successfully.", new Records.PageResponse<>(
+                users,
+                userPage.getNumber(),
+                userPage.getSize(),
+                userPage.hasNext()
+        ));
     }
 
     @Transactional

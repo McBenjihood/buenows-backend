@@ -22,10 +22,14 @@ public class ContactExtractor {
     }
 
     public boolean conversationHasContactInfo(List<ConversationMessage> messages) {
-        return extractFromConversation(messages).hasAny();
+        return extractFromConversation(messages).hasEmail();
     }
 
     public boolean textHasContactInfo(String value) {
+        return !extractEmail(value).isBlank();
+    }
+
+    public boolean textHasContactLikeValue(String value) {
         return !extractEmail(value).isBlank() || !extractPhone(value).isBlank();
     }
 

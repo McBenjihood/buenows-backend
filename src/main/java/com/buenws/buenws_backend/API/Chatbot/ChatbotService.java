@@ -7,6 +7,7 @@ import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.Classification;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ClassificationDecision;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ConfigResponse;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.ConversationMessage;
+import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.HandoffDraft;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.HealthResponse;
 import com.buenws.buenws_backend.API.Chatbot.ChatbotModels.SessionResponse;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.Map;
 
 @Service
 public class ChatbotService {
+    private record GeneratedReply(String reply, HandoffDraft handoffDraft) {}
 
     private final ChatbotProperties properties;
     private final ChatbotCompanyConfigService companyConfigService;
@@ -30,13 +32,14 @@ public class ChatbotService {
     private final ReplyQualityGuard replyQuality;
     private final HandoffRenderer handoffRenderer;
     private final LanguageSafetyGuard languageSafety;
+    private final SensitiveDataGuard sensitiveDataGuard;
 
     public ChatbotService(ChatbotProperties properties, ChatbotCompanyConfigService companyConfigService,
                           ChatbotSessionStore sessionStore, OpenAiResponsesClient openAiClient,
                           PromptBuilder promptBuilder, ContactExtractor contactExtractor,
                           ChatbotConversationHistoryService historyService, ProjectContextEvaluator projectContext,
                           ReplyQualityGuard replyQuality, HandoffRenderer handoffRenderer,
-                          LanguageSafetyGuard languageSafety) {
+                          LanguageSafetyGuard languageSafety, SensitiveDataGuard sensitiveDataGuard) {
         this.properties = properties;
         this.companyConfigService = companyConfigService;
         this.sessionStore = sessionStore;
@@ -48,6 +51,7 @@ public class ChatbotService {
         this.replyQuality = replyQuality;
         this.handoffRenderer = handoffRenderer;
         this.languageSafety = languageSafety;
+        this.sensitiveDataGuard = sensitiveDataGuard;
     }
 
     public ConfigResponse publicConfig(String language) { return companyConfigService.publicConfig(language); }
@@ -76,6 +80,15 @@ public class ChatbotService {
         }
         if (session == null) session = sessionStore.create(requestLanguage);
         String language = session.language();
+        if (sensitiveDataGuard.containsSensitiveData(userMessage)) {
+            return new ChatResponse(ChatbotText.t(language, "sensitiveData"), session.id(), language, false);
+        }
+        ChatSession activeSession = session;
+        return sessionStore.withSessionLock(activeSession.id(), () -> processChat(activeSession, userMessage));
+    }
+
+    private ChatResponse processChat(ChatSession session, String userMessage) {
+        String language = session.language();
         if (sessionStore.hasReachedSessionMessageLimit(session)) {
             throw new ChatbotRateLimitExceededException("session_message_limit", ChatbotText.t(language, "sessionMessageLimit"), sessionStore.sessionRetryAfterSeconds(session));
         }
@@ -96,7 +109,8 @@ public class ChatbotService {
                 return new ChatResponse(reply, session.id(), language, true);
             }
 
-            String reply = generateReply(config, session, classification, language);
+            GeneratedReply generatedReply = generateReply(config, session, classification, language);
+            String reply = generatedReply.reply();
             session.addMessage("assistant", reply, 4000);
             boolean completed = replyQuality.replyLooksLikeTemplate(reply);
             if (completed) session.end("handoff_completed");
@@ -104,7 +118,7 @@ public class ChatbotService {
                     ? ChatbotConversationHistoryService.STATUS_COMPLETED
                     : ChatbotConversationHistoryService.STATUS_ACTIVE;
             historyService.saveAssistantMessage(config, session, reply, status);
-            return new ChatResponse(reply, session.id(), language, completed);
+            return new ChatResponse(reply, session.id(), language, completed, completed ? generatedReply.handoffDraft() : null);
         } catch (RuntimeException exception) {
             historyService.markError(session.id());
             throw exception;
@@ -145,10 +159,11 @@ public class ChatbotService {
         return openAiClient.classify(promptBuilder.classificationInstructions(config, language), payload);
     }
 
-    private String generateReply(ChatbotCompanyConfig config, ChatSession session, Classification classification, String language) {
+    private GeneratedReply generateReply(ChatbotCompanyConfig config, ChatSession session, Classification classification, String language) {
         AssistantMetadata metadata = openAiClient.createReply(promptBuilder.replyInstructions(config, classification, language), buildConversationForReply(session));
         String reply = ChatbotText.cleanReply(metadata.reply());
         if (reply.isBlank()) throw new ChatbotUnavailableException(ChatbotText.t(language, "chatUnavailable"), 500);
+        HandoffDraft handoffDraft = null;
 
         for (int attempt = 1; attempt <= 2; attempt += 1) {
             String issue = replyQuality.getReplyQualityIssue(reply, session, metadata, language);
@@ -158,22 +173,41 @@ public class ChatbotService {
         }
         if (replyQuality.needsProjectFollowUpFallback(reply, session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
         if (replyQuality.needsContactDelayFallback(reply, session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
+        if (replyQuality.asksWrongChannelClarificationForWorkflow(reply, session)) {
+            reply = projectContext.hasEnoughProjectContextForHandoff(session) && !contactExtractor.conversationHasContactInfo(session.messages())
+                    ? replyQuality.buildEmailContactQuestion(language)
+                    : replyQuality.buildProjectFollowUpFallback(session, language);
+        }
         if (replyQuality.asksForContactOption(reply) && replyQuality.lastUserMessageIsContactPreference(session)) reply = replyQuality.buildConcreteContactQuestion(projectContext.getLastUserMessage(session), language);
+        else if (replyQuality.asksForContactOption(reply) && projectContext.hasEnoughProjectContextForHandoff(session) && !contactExtractor.conversationHasContactInfo(session.messages())) reply = replyQuality.buildEmailContactQuestion(language);
         if (replyQuality.isAmbiguousChannelReply(session)) reply = replyQuality.buildChannelClarificationQuestion(projectContext.getLastUserMessage(session), language);
         if (replyQuality.lastUserContactButProjectContextMissing(session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
-        if (projectContext.repeatsPreviousAssistantQuestion(reply, session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
+        if (projectContext.repeatsPreviousAssistantQuestion(reply, session) && !isEmailQuestionAfterInvalidContactPreference(reply, session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
+        if (replyQuality.shouldUseHumanContactFallback(session, reply)) reply = replyQuality.buildHumanContactReply(config, language);
 
         if (replyQuality.needsStructuredHandoffRecovery(session, reply)) {
             metadata = merge(metadata, openAiClient.extractHandoffMetadata(promptBuilder.handoffMetadataInstructions(config, language), buildConversationForReply(session), reply));
         }
-        reply = handoffRenderer.maybeFormatStructuredHandoff(config, session, metadata, reply, language);
-        if (replyQuality.replyLooksLikeTemplate(reply) && !projectContext.hasEnoughProjectContextForHandoff(session)) reply = replyQuality.buildProjectFollowUpFallback(session, language);
-        if (replyQuality.replyLooksLikeTemplate(reply) && !contactExtractor.conversationHasContactInfo(session.messages())) reply = ChatbotText.t(language, "contactMissing");
+        HandoffRenderer.HandoffResult handoffResult = handoffRenderer.maybeFormatStructuredHandoff(config, session, metadata, reply, language);
+        reply = handoffResult.reply();
+        handoffDraft = handoffResult.handoffDraft();
+        if (replyQuality.replyLooksLikeTemplate(reply) && !projectContext.hasEnoughProjectContextForHandoff(session)) {
+            reply = replyQuality.buildProjectFollowUpFallback(session, language);
+            handoffDraft = null;
+        }
+        if (replyQuality.replyLooksLikeTemplate(reply) && !contactExtractor.conversationHasContactInfo(session.messages())) {
+            reply = ChatbotText.t(language, "contactMissing");
+            handoffDraft = null;
+        }
         if (languageSafety.replyLooksWrongLanguage(reply, language) || languageSafety.isLanguageLockOnlyReply(reply) || languageSafety.missesLanguageLockAcknowledgement(reply, session, language)) {
             if (languageSafety.missesLanguageLockAcknowledgement(reply, session, language) && replyQuality.replyLooksLikeTemplate(reply) && !languageSafety.replyLooksWrongLanguage(reply, language)) reply = languageSafety.languageLockSentence(language) + "\n\n" + reply;
-            else reply = languageSafety.buildLanguageSafeFallback(session, language);
+            else {
+                reply = languageSafety.buildLanguageSafeFallback(session, language);
+                handoffDraft = null;
+            }
         }
-        return replyQuality.enforceFinalReplySafety(reply, language);
+        String finalReply = replyQuality.enforceFinalReplySafety(reply, language);
+        return new GeneratedReply(finalReply, replyQuality.replyLooksLikeTemplate(finalReply) ? handoffDraft : null);
     }
 
     private List<Map<String, Object>> buildConversationForClassification(ChatSession session, String currentMessage) {
@@ -203,7 +237,23 @@ public class ChatbotService {
     }
 
     private AssistantMetadata merge(AssistantMetadata previous, AssistantMetadata next) {
-        return new AssistantMetadata(!next.reply().isBlank() ? next.reply() : previous.reply(), next.readyForHandoff() || previous.readyForHandoff(), firstNonBlank(next.contactEmail(), previous.contactEmail()), firstNonBlank(next.contactPhone(), previous.contactPhone()), firstNonBlank(next.desiredSolution(), previous.desiredSolution()), firstNonBlank(next.leadSummary(), previous.leadSummary()));
+        return new AssistantMetadata(
+                !next.reply().isBlank() ? next.reply() : previous.reply(),
+                next.readyForHandoff() || previous.readyForHandoff(),
+                firstNonBlank(next.contactEmail(), previous.contactEmail()),
+                firstNonBlank(next.desiredSolution(), previous.desiredSolution()),
+                firstNonBlank(next.leadSummary(), previous.leadSummary()),
+                firstNonBlank(next.nextAction(), previous.nextAction()),
+                firstNonBlank(next.missingField(), previous.missingField()),
+                next.projectContextComplete() || previous.projectContextComplete(),
+                next.contactRequired() || previous.contactRequired()
+        );
+    }
+
+    private boolean isEmailQuestionAfterInvalidContactPreference(String reply, ChatSession session) {
+        return replyQuality.asksForContactOption(reply)
+                && replyQuality.lastUserMessageIsContactPreference(session)
+                && !contactExtractor.conversationHasContactInfo(session.messages());
     }
 
     private String firstNonBlank(String... values) { for (String value : values) if (value != null && !value.isBlank()) return value.trim(); return ""; }
