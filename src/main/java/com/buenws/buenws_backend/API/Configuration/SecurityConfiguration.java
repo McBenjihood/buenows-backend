@@ -81,8 +81,11 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+
                         .requestMatchers(HttpMethod.POST, "/api/inquiry/contact-submissions").permitAll()
+
                         .requestMatchers(HttpMethod.GET, "/api/user/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/auth/logout").permitAll()
@@ -91,8 +94,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/user/change-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/request-otp").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/user/verify-otp").permitAll()
+
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/admin/inquiries").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/admin/inquiries/delete").hasRole("ADMIN")
@@ -101,6 +104,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.DELETE, "/api/admin/users/delete").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/users/update-profile").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/users/update-role").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/debug/ip").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/api/user/auth").authenticated()
 

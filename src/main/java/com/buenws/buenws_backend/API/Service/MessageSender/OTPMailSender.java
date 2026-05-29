@@ -52,11 +52,13 @@ public class OTPMailSender implements OTPMessageSender {
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             String safeRecipient = recipient == null ? "" : recipient;
-            OtpMailCopy copy = resolveCopy(locale);
+            String safeOTP = newOTP == null ? "" : newOTP;
+
+            OtpMailCopy copy = resolveCopy(locale, safeOTP);
 
             helper.setTo(safeRecipient);
             helper.setSubject(copy.subject());
-            helper.setText(renderTemplate(newOTP, locale), true);
+            helper.setText(renderTemplate(safeOTP, locale), true);
 
             mailSender.send(message);
             return true;
@@ -71,9 +73,8 @@ public class OTPMailSender implements OTPMessageSender {
         }
     }
 
-    String renderTemplate(String newOTP, Locale locale) throws IOException {
-        String safeOTP = newOTP == null ? "" : newOTP;
-        OtpMailCopy copy = resolveCopy(locale);
+    String renderTemplate(String safeOTP, Locale locale) throws IOException {
+        OtpMailCopy copy = resolveCopy(locale,safeOTP);
 
         ClassPathResource resource = new ClassPathResource("templates/otp_template.html");
         String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
@@ -91,13 +92,13 @@ public class OTPMailSender implements OTPMessageSender {
                 .replace("{{REASON_TEXT}}", copy.reasonText());
     }
 
-    OtpMailCopy resolveCopy(Locale locale) {
+    OtpMailCopy resolveCopy(Locale locale, String safe_otp) {
         String language = locale == null ? "de" : locale.getLanguage();
 
         if ("en".equalsIgnoreCase(language)) {
             return new OtpMailCopy(
                     "en",
-                    "Your Bueno Web Solutions verification code",
+                    "Your Bueno Web Solutions verification code is " + safe_otp,
                     "Verification code",
                     "Your verification code",
                     "This code will expire in <strong>15 minutes</strong>. If you did not request this, you can safely ignore this email.",
@@ -110,7 +111,7 @@ public class OTPMailSender implements OTPMessageSender {
 
         return new OtpMailCopy(
                 "de",
-                "Ihr Bueno Web Solutions Bestätigungscode",
+                "Ihr Bueno Web Solutions Bestätigungscode ist " + safe_otp,
                 "Bestätigungscode",
                 "Ihr Bestätigungscode",
                 "Dieser Code läuft in <strong>15 Minuten</strong> ab. Wenn Sie ihn nicht angefordert haben, können Sie diese E-Mail ignorieren.",
