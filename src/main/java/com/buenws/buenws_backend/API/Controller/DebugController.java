@@ -24,8 +24,14 @@ public class DebugController {
 
     @GetMapping("/ip")
     public Map<String, String> debugIP(HttpServletRequest request) {
+        rateLimitService.checkBucket("/debug/ip:" + RequestUtil.getClientIp(request), 1);
         return Map.of(
                 "remoteAddr", request.getRemoteAddr(),
+                "remoteHost", request.getRemoteHost(),
+                "scheme", request.getScheme(),
+                "serverName", request.getServerName(),
+                "serverPort", String.valueOf(request.getServerPort()),
+                "isSecure", String.valueOf(request.isSecure()),
                 "xForwardedFor", Optional.ofNullable(request.getHeader("X-Forwarded-For")).orElse(""),
                 "xForwardedProto", Optional.ofNullable(request.getHeader("X-Forwarded-Proto")).orElse(""),
                 "xForwardedPort", Optional.ofNullable(request.getHeader("X-Forwarded-Port")).orElse("")
