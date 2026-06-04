@@ -31,12 +31,12 @@ public class CustomRequestInterceptor implements HandlerInterceptor {
         Long durationMs = startTime == null ? -1 : System.currentTimeMillis() - startTime;
 
         logger.info(
-                "method={} path={} status={} durationMs={}, ipAddr={}",
+                "event=http_request method={} path={} status={} durationMs={} ipAddr={}",
                 request.getMethod(),
                 request.getRequestURI(),
                 response.getStatus(),
                 durationMs,
-                RequestUtil.getClientIp(request)
+                request.getRemoteAddr()
         );
 
     }
