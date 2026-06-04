@@ -13,28 +13,5 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/files")
 public class UserAssetController {
-/*
-    private final UserAssetService userAssetService;
-    private final TokenService tokenService;
 
-    public UserAssetController(UserAssetService userAssetService, TokenService tokenService) {
-        this.userAssetService = userAssetService;
-        this.tokenService = tokenService;
-    }
-
-    @PostMapping("/upload")
-    public ResponseEntity<Records.ApiResponse<Records.UploadFileResponse>> handleFileUpload(
-            @RequestParam("file") MultipartFile file,
-            @RequestHeader("Authorization") String authHeader
-    ) {
-        return ResponseEntity.ok(userAssetService.handleImageUpload(file, authHeader));
-    }
-
-    @GetMapping("/get-files")
-    public ResponseEntity<Records.ApiResponse<List<String>>> getImageList(
-            @RequestHeader("Authorization") String authHeader
-    ) {
-        return ResponseEntity.ok(userAssetService.getImageList(tokenService.parseTokenFromHeader(authHeader)));
-    }
- */
 }

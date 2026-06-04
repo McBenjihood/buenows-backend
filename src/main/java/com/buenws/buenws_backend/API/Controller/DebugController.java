@@ -24,7 +24,7 @@ public class DebugController {
 
     @GetMapping("/ip")
     public Map<String, String> debugIP(HttpServletRequest request) {
-        rateLimitService.checkBucket("/debug/ip:" + RequestUtil.getClientIp(request), 1);
+        rateLimitService.checkBucket("/debug/ip:" + RequestUtil.getClientIp(request), 20);
         return Map.of(
                 "remoteAddr", request.getRemoteAddr(),
                 "remoteHost", request.getRemoteHost(),
