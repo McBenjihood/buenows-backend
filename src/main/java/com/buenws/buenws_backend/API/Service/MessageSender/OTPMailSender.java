@@ -65,6 +65,7 @@ public class OTPMailSender implements OTPMessageSender {
             helper.setFrom(fromEmail);
 
 
+            System.out.println("Sending mail from: " + fromEmail);
             mailSender.send(message);
             return true;
         } catch (MessagingException e) {
