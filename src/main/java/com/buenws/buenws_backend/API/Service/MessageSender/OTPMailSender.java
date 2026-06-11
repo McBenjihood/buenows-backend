@@ -3,6 +3,7 @@ package com.buenws.buenws_backend.API.Service.MessageSender;
 import com.buenws.buenws_backend.API.Exception.Custom.MailException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -16,6 +17,8 @@ import java.util.Locale;
 @Component
 public class OTPMailSender implements OTPMessageSender {
 
+    @Value("${app.mail.from}")
+    private String fromEmail;
     private final JavaMailSender mailSender;
 
     public OTPMailSender(JavaMailSender mailSender) {
@@ -59,6 +62,8 @@ public class OTPMailSender implements OTPMessageSender {
             helper.setTo(safeRecipient);
             helper.setSubject(copy.subject());
             helper.setText(renderTemplate(safeOTP, locale), true);
+            helper.setFrom(fromEmail);
+
 
             mailSender.send(message);
             return true;
