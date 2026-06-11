@@ -1,4 +1,8 @@
-DROP TABLE IF EXISTS user_authorities;I9#441Bcg&8*cI#%ARs
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS user_authorities;
 DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS inquiries;
 DROP TABLE IF EXISTS user_assets;
@@ -7,7 +11,7 @@ DROP TABLE IF EXISTS users CASCADE;
 
 CREATE TABLE users
 (
-    user_id    uuid PRIMARY KEY DEFAULT NOT NULL,
+    user_id    uuid PRIMARY KEY NOT NULL,
     email      VARCHAR(255) UNIQUE NOT NULL,
     first_name VARCHAR(50)         NOT NULL,
     last_name  VARCHAR(50)         NOT NULL,
@@ -64,5 +68,38 @@ CREATE TABLE otp_auth
     expires_at     TIMESTAMPTZ      DEFAULT NULL,
     cooldown       TIMESTAMPTZ
 );
+
+create table products (
+                          id bigint generated always as identity primary key,
+                          name varchar(255) not null,
+                          description text,
+                          price numeric(12, 2) not null,
+                          stock_quantity integer not null default 0,
+                          created_at timestamptz not null default now()
+);
+
+create table customers (
+                           id bigint generated always as identity primary key,
+                           email varchar(255) unique not null,
+                           name varchar(255),
+                           created_at timestamptz not null default now()
+);
+
+create table orders (
+                        id bigint generated always as identity primary key,
+                        customer_id bigint not null references customers(id),
+                        status varchar(50) not null default 'pending',
+                        total numeric(12, 2) not null,
+                        created_at timestamptz not null default now()
+);
+
+create table order_items (
+                             id bigint generated always as identity primary key,
+                             order_id bigint not null references orders(id),
+                             product_id bigint not null references products(id),
+                             quantity integer not null,
+                             price numeric(12, 2) not null
+);
+
 CREATE INDEX idx_user_authorities_user_id ON user_authorities(user_id);
 CREATE INDEX idx_user_assets_user_id ON user_assets(user_id);
