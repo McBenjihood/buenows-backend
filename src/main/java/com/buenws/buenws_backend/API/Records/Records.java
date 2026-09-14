@@ -67,22 +67,7 @@ public class Records
             java.util.List<String> authorities,
             String created_at
     ){}
-    public record AdminUpdateRoleRequest(
-            @NotBlank(message = "Role is required")
-            String role,
-            @NotNull(message = "UserID is required")
-            UUID userID
-    ){}
-    public record AdminUpdateUserProfileRequest(
-            @NotBlank(message = "First name is required")
-            @Size(max = 50)
-            String first_name,
-            @NotBlank(message = "Last name is required")
-            @Size(max = 50)
-            String last_name,
-            @NotNull(message = "UserID is required")
-            UUID userID
-    ){}
+
 
     //Requests
     public record FormSubmissionRequest(
@@ -153,5 +138,29 @@ public class Records
     public record DeleteUserRequest(
             @NotNull(message = "userID is required")
             UUID userID
+    ){}
+    public record AdminUpdateRoleRequest(
+            @NotBlank(message = "Role is required")
+            String role,
+            @NotNull(message = "UserID is required")
+            UUID userID
+    ){}
+    public record AdminUpdateUserProfileRequest(
+            @NotBlank(message = "First name is required")
+            @Size(max = 50)
+            String first_name,
+            @NotBlank(message = "Last name is required")
+            @Size(max = 50)
+            String last_name,
+            @NotNull(message = "UserID is required")
+            UUID userID
+    ){}
+    public record CreateStoreRequest(
+       @NotBlank(message = "Name is required")
+       @Size(max = 255)
+       String name,
+       @NotBlank(message = "API-Key is required")
+       @Size(max = 64)
+       String api_key
     ){}
 }

@@ -17,6 +17,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 @SpringBootTest
-class BuenowsBackendApplicationTests {
+class BuenwsBackendApplicationTests {
 
+
+    @Test
+    public void TestCreateProduct(){
+
+    }
 }
