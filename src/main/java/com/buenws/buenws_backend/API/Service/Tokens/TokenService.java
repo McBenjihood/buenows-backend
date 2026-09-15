@@ -130,7 +130,7 @@ public class TokenService {
         JWTClaimsSet claimSet = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
         return claimSet.getExpirationTime();
     }
-    public String parseTokenFromHeader(String header){
+    public static String parseTokenFromHeader(String header){
         if(header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }else {

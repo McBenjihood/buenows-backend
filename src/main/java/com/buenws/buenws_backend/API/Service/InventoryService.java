@@ -14,11 +14,15 @@ public class InventoryService {
         this.storeRepository = storeRepository;
     }
 
-    public void CreateStore(Records.CreateStoreRequest createStoreRequest){
+    public Records.ApiResponse<Void> CreateStore(Records.CreateStoreRequest createStoreRequest){
+
+
         StoreEntity storeEntity = new StoreEntity();
         storeEntity.setName(createStoreRequest.name());
         storeEntity.setApi_key(createStoreRequest.api_key());
         storeRepository.save(storeEntity);
+
+        return Records.ApiResponse.success("Store created successfully");
     }
 
     public void CreateProduct(){

@@ -1,5 +1,6 @@
 package com.buenws.buenws_backend.API.Entity;
 
+import com.buenws.buenws_backend.API.Entity.Inventory.StoreEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -44,8 +45,8 @@ public class UserEntity {
     @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private RefreshTokenEntity refreshTokenEntity;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<UserAssetEntity> userAssets;
+    @OneToOne(mappedBy = "userEntity")
+    private StoreEntity storeEntity;
 
 
     // Getters / Setters
@@ -99,11 +100,10 @@ public class UserEntity {
         this.refreshTokenEntity = refreshTokenEntity;
     }
 
-    public List<UserAssetEntity> getUserAssets() {
-        return userAssets;
+    public StoreEntity getStoreEntity() {
+        return storeEntity;
     }
-    public void setUserAssets(List<UserAssetEntity> userAssets) {
-        this.userAssets = userAssets;
+    public void setStoreEntity(StoreEntity storeEntity) {
+        this.storeEntity = storeEntity;
     }
-
 }

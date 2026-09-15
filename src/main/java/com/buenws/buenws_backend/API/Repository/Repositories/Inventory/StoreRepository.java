@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface StoreRepository extends JpaRepository<StoreEntity, UUID> {
-    Optional<StoreEntity> findByStoreID (UUID uuid)
+    Optional<StoreEntity> findByStoreID (UUID uuid);
 }

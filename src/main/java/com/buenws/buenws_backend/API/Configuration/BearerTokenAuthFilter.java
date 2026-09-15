@@ -61,10 +61,10 @@ public class BearerTokenAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String accessToken = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
+        String accessToken = TokenService.parseTokenFromHeader(request.getHeader("Authorization"));
 
 
-        if (accessToken != null && !accessToken.isBlank()) {
+        if (!accessToken.isBlank()) {
             try {
                 com.nimbusds.jwt.JWTClaimsSet claimsSet = tokenService.validateJWTToken(accessToken);
                 String email = claimsSet.getSubject();

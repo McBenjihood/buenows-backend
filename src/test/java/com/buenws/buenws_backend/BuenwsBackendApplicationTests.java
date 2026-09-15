@@ -1,27 +1,18 @@
 package com.buenws.buenws_backend;
 
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.buenws.buenws_backend.Integration.InventoryIntegrationTests;
+import com.buenws.buenws_backend.Unit.InventoryUnitTests;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
 
-import java.time.Duration;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import static org.mockito.Mockito.verify;
 
-
-import static org.junit.jupiter.api.Assertions.*;
-
-
-@SpringBootTest
+@Suite
+@SelectClasses({
+        InventoryUnitTests.class,
+        InventoryIntegrationTests.class
+})
 class BuenwsBackendApplicationTests {
 
-
-    @Test
-    public void TestCreateProduct(){
-
-    }
 }

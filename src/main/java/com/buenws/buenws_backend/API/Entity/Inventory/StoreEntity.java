@@ -1,6 +1,6 @@
 package com.buenws.buenws_backend.API.Entity.Inventory;
 
-import com.buenws.buenws_backend.API.Entity.UserAssetEntity;
+import com.buenws.buenws_backend.API.Entity.UserEntity;
 import jakarta.mail.Store;
 import jakarta.persistence.*;
 
@@ -12,7 +12,7 @@ import java.util.UUID;
 public class StoreEntity {
 
     public StoreEntity(){
-        this.uuid = UUID.randomUUID();
+        this.storeID = UUID.randomUUID();
     }
 
     @Id
@@ -24,7 +24,11 @@ public class StoreEntity {
     @Column
     private String api_key;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true, nullable = false)
+    private UserEntity userEntity;
+
+    @OneToMany(mappedBy = "product_id", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProductEntity> productEntityList;
 
 
