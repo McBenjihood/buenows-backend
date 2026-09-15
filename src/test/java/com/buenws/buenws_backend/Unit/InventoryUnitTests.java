@@ -2,6 +2,7 @@ package com.buenws.buenws_backend.Unit;
 
 
 import com.buenws.buenws_backend.API.Entity.Inventory.StoreEntity;
+import com.buenws.buenws_backend.API.Entity.UserEntity;
 import com.buenws.buenws_backend.API.Records.Records;
 import com.buenws.buenws_backend.API.Repository.Repositories.Inventory.StoreRepository;
 import com.buenws.buenws_backend.API.Service.InventoryService;
@@ -31,9 +32,10 @@ public class InventoryUnitTests {
         String name = "Amazing Store";
         String api_key = "S9Wgzx0vk5IEZUPnTgEe2HiEuzoDtvLa";
         Records.CreateStoreRequest record = new Records.CreateStoreRequest(name, api_key);
+        UserEntity userEntity = new UserEntity();
 
         //Act
-        Records.ApiResponse<Void> response = inventoryService.CreateStore(record);
+        Records.ApiResponse<Void> response = inventoryService.CreateStore(record, userEntity);
 
         //Assert
         assertEquals("Store created successfully", response.message());

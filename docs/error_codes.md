@@ -14,3 +14,4 @@ This document lists the internal error codes used in the `buenws-backend` projec
 | `INVALID_OTP`          | Used for invalid OTP's, lets say during changing passwords.                                  | FileService               |
 | `INVALID_MAIL`         | Used when anything related to sending e-mails to user goes wrong.                            | FileService               |
 | `RATELIMIT_REACHED`    | Used when Rate-Limit for an IP-Adress is reached.                                            | RateLimitService          |
+| `INVALID_STORE_OPERATION`    | Used when Rate-Limit for an IP-Adress is reached.                                      | InventoryService          |

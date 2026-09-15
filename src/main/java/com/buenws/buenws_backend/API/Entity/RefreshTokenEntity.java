@@ -3,7 +3,6 @@ package com.buenws.buenws_backend.API.Entity;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Table(name = "refresh_tokens")

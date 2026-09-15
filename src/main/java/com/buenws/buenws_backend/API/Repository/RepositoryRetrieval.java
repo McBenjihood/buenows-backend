@@ -6,6 +6,7 @@ import com.buenws.buenws_backend.API.Exception.Custom.InvalidUserException;
 import com.buenws.buenws_backend.API.Repository.Repositories.OTPAuthRepository;
 import com.buenws.buenws_backend.API.Repository.Repositories.UserRepository;
 import com.buenws.buenws_backend.API.Service.Tokens.TokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -24,7 +25,8 @@ public class RepositoryRetrieval {
         this.OTPAuthRepository = OTPAuthRepository;
     }
 
-    public UserEntity getUserEntityFromToken(String token){
+    public UserEntity getUserEntityFromRequest(HttpServletRequest request){
+        String token = tokenService.parseTokenFromHeader(request.getHeader("Authorization"));
         com.nimbusds.jwt.JWTClaimsSet claimsSet = tokenService.validateJWTToken(token);
         Optional<UserEntity> userEntity = userRepository.findByEmail(claimsSet.getSubject());
         if(userEntity.isPresent()){

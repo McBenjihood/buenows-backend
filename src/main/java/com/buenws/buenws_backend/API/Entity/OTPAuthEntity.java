@@ -4,7 +4,6 @@ import com.buenws.buenws_backend.Util.TimeUtil;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity

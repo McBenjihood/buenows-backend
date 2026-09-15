@@ -1,13 +1,9 @@
 package com.buenws.buenws_backend.Util;
 
 import com.google.common.hash.Hashing;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Random;
 
 public class CryptographyUtil {
     public static String HashString(String originalString, String salt){

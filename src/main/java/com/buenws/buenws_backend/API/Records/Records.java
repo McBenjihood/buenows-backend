@@ -1,7 +1,10 @@
 package com.buenws.buenws_backend.API.Records;
 
-import jakarta.validation.constraints.*;
-import java.lang.reflect.Array;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.util.UUID;
 
 public class Records

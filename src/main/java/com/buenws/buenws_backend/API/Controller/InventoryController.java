@@ -1,6 +1,7 @@
 package com.buenws.buenws_backend.API.Controller;
 
 import com.buenws.buenws_backend.API.Records.Records;
+import com.buenws.buenws_backend.API.Repository.RepositoryRetrieval;
 import com.buenws.buenws_backend.API.Service.InventoryService;
 import com.buenws.buenws_backend.API.Service.RateLimitService;
 import com.buenws.buenws_backend.Util.RequestUtil;
@@ -18,15 +19,17 @@ public class InventoryController {
 
     private final RateLimitService rateLimitService;
     private final InventoryService inventoryService;
+    private final RepositoryRetrieval repositoryRetrieval;
 
-    public InventoryController(RateLimitService rateLimitService, InventoryService inventoryService) {
+    public InventoryController(RateLimitService rateLimitService, InventoryService inventoryService, RepositoryRetrieval repositoryRetrieval) {
         this.rateLimitService = rateLimitService;
         this.inventoryService = inventoryService;
+        this.repositoryRetrieval = repositoryRetrieval;
     }
 
-    @PostMapping("/products/create")
-    public ResponseEntity<Records.ApiResponse<Void>> createProduct(@Valid @RequestBody Records.CreateStoreRequest requestbody HttpServletRequest request){
+    @PostMapping("/store/create")
+    public ResponseEntity<Records.ApiResponse<Void>> createStore(@Valid @RequestBody Records.CreateStoreRequest requestBody, HttpServletRequest request){
         rateLimitService.checkBucket("/products/create:" + RequestUtil.getClientIp(request), 10);
-        return ResponseEntity.ok(inventoryService.CreateStore(requestbody, requestww));
+        return ResponseEntity.ok(inventoryService.CreateStore(requestBody, repositoryRetrieval.getUserEntityFromRequest(request)));
     }
 }

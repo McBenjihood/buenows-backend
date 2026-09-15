@@ -1,6 +1,5 @@
 package com.buenws.buenws_backend.API.Configuration.Interceptor;
 
-import com.buenws.buenws_backend.Util.RequestUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;

@@ -13,11 +13,9 @@ import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -31,8 +29,10 @@ public class TokenService {
     public static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final UserRepository userRepository;
 
-    public TokenService(RefreshTokenRepository refreshTokenRepository) {
+    public TokenService(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository) {
+        this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
@@ -130,7 +130,9 @@ public class TokenService {
         JWTClaimsSet claimSet = JWTClaimsSet.parse(jwsObject.getPayload().toJSONObject());
         return claimSet.getExpirationTime();
     }
-    public static String parseTokenFromHeader(String header){
+
+    public String parseTokenFromHeader(String header){
+
         if(header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }else {
@@ -138,17 +140,6 @@ public class TokenService {
         }
     }
 
-    public String parseTokenFromCookie(HttpServletRequest request, String cookieName) {
-        if (request.getCookies() == null) {
-            return null;
-        }
 
-        for (Cookie cookie : request.getCookies()) {
-            if (cookieName.equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
 
-        return null;
-    }
 }
